@@ -3,12 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using HarmonyLib;
-using Microsoft.Xna.Framework.Content;
 using StardewModdingAPI.Internal;
 using StardewModdingAPI.Internal.Patching;
 using StardewValley;
-using StardewValley.Buildings;
-using StardewValley.Locations;
 
 namespace StardewModdingAPI.Mods.ErrorHandler.Patches
 {
@@ -59,13 +56,12 @@ namespace StardewModdingAPI.Mods.ErrorHandler.Patches
         ** Private methods
         *********/
         /// <summary>The method to call instead of <see cref="SaveGame.loadDataToLocations"/>.</summary>
-        /// <param name="gamelocations">The game locations being loaded.</param>
+        /// <param name="fromLocations">The game locations being loaded.</param>
         /// <returns>Returns whether to execute the original method.</returns>
-        private static bool Before_LoadDataToLocations(List<GameLocation> gamelocations)
+        private static bool Before_LoadDataToLocations(List<GameLocation> fromLocations)
         {
             // missing locations/NPCs
-            IDictionary<string, string> npcs = Game1.content.Load<Dictionary<string, string>>("Data\\NPCDispositions");
-            if (SaveGamePatcher.RemoveBrokenContent(gamelocations, npcs))
+            if (SaveGamePatcher.RemoveBrokenContent(fromLocations))
                 SaveGamePatcher.OnContentRemoved();
 
             return true;
@@ -94,51 +90,28 @@ namespace StardewModdingAPI.Mods.ErrorHandler.Patches
 
         /// <summary>Remove content which no longer exists in the game data.</summary>
         /// <param name="locations">The current game locations.</param>
-        /// <param name="npcs">The NPC data.</param>
-        private static bool RemoveBrokenContent(IEnumerable<GameLocation> locations, IDictionary<string, string> npcs)
+        private static bool RemoveBrokenContent(IEnumerable<GameLocation> locations)
         {
             bool removedAny = false;
 
             foreach (GameLocation location in locations)
-                removedAny |= SaveGamePatcher.RemoveBrokenContent(location, npcs);
+                removedAny |= SaveGamePatcher.RemoveBrokenContent(location);
 
             return removedAny;
         }
 
         /// <summary>Remove content which no longer exists in the game data.</summary>
         /// <param name="location">The current game location.</param>
-        /// <param name="npcs">The NPC data.</param>
-        private static bool RemoveBrokenContent(GameLocation? location, IDictionary<string, string> npcs)
+        private static bool RemoveBrokenContent(GameLocation? location)
         {
             bool removedAny = false;
             if (location == null)
                 return false;
 
-            // check buildings
-            if (location is BuildableGameLocation buildableLocation)
-            {
-                foreach (Building building in buildableLocation.buildings.ToArray())
-                {
-                    try
-                    {
-                        BluePrint _ = new(building.buildingType.Value);
-                    }
-                    catch (ContentLoadException)
-                    {
-                        SaveGamePatcher.Monitor.Log($"Removed invalid building type '{building.buildingType.Value}' in {location.Name} ({building.tileX}, {building.tileY}) to avoid a crash when loading save '{Constants.SaveFolderName}'. (Did you remove a custom building mod?)", LogLevel.Warn);
-                        buildableLocation.buildings.Remove(building);
-                        removedAny = true;
-                        continue;
-                    }
-
-                    SaveGamePatcher.RemoveBrokenContent(building.indoors.Value, npcs);
-                }
-            }
-
             // check NPCs
             foreach (NPC npc in location.characters.ToArray())
             {
-                if (npc.isVillager() && !npcs.ContainsKey(npc.Name))
+                if (npc.isVillager() && !Game1.characterData.ContainsKey(npc.Name))
                 {
                     try
                     {
@@ -146,7 +119,7 @@ namespace StardewModdingAPI.Mods.ErrorHandler.Patches
                     }
                     catch
                     {
-                        SaveGamePatcher.Monitor.Log($"Removed invalid villager '{npc.Name}' in {location.Name} ({npc.getTileLocation()}) to avoid a crash when loading save '{Constants.SaveFolderName}'. (Did you remove a custom NPC mod?)", LogLevel.Warn);
+                        SaveGamePatcher.Monitor.Log($"Removed invalid villager '{npc.Name}' in {location.Name} ({npc.Tile}) to avoid a crash when loading save '{Constants.SaveFolderName}'. (Did you remove a custom NPC mod?)", LogLevel.Warn);
                         location.characters.Remove(npc);
                         removedAny = true;
                     }

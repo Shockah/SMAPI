@@ -5,6 +5,7 @@ using HarmonyLib;
 using StardewModdingAPI.Internal;
 using StardewModdingAPI.Internal.Patching;
 using StardewValley;
+using StardewValley.Pathfinding;
 
 namespace StardewModdingAPI.Mods.ErrorHandler.Patches
 {
