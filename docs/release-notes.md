@@ -5,6 +5,7 @@
 * For players:
   * Updated for Stardew Valley 1.6.
   * Improved performance.
+  * Removed `player_setimmunity` console command (broke in 1.6 and rarely used).
   * Removed support for updating from SMAPI 2.11.3 or earlier (released in 2019).  
     _If needed, you can update to SMAPI 3.18.0 first and then install the latest version._
 
