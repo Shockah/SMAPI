@@ -14,7 +14,9 @@ using StardewValley;
 using StardewValley.BellsAndWhistles;
 using StardewValley.Buildings;
 using StardewValley.Characters;
+using StardewValley.GameData.BigCraftables;
 using StardewValley.GameData.Movies;
+using StardewValley.GameData.Objects;
 using StardewValley.Locations;
 using StardewValley.Menus;
 using StardewValley.Objects;
@@ -294,12 +296,14 @@ namespace StardewModdingAPI.Metadata
                     Game1.achievements = content.Load<Dictionary<int, string>>(key);
                     return true;
 
-                case "data/bigcraftablesinformation": // Game1.LoadContent
-                    Game1.bigCraftablesInformation = content.Load<Dictionary<int, string>>(key);
+                case "data/bigcraftables": // Game1.LoadContent
+                    Game1.bigCraftableData = content.Load<Dictionary<string, BigCraftableData>>(key);
+                    ItemRegistry.ResetCache();
                     return true;
 
                 case "data/clothinginformation": // Game1.LoadContent
-                    Game1.clothingInformation = content.Load<Dictionary<int, string>>(key);
+                    Game1.clothingInformation = content.Load<Dictionary<string, string>>(key);
+                    ItemRegistry.ResetCache();
                     return true;
 
                 case "data/concessions": // MovieTheater.GetConcessions
@@ -342,8 +346,9 @@ namespace StardewModdingAPI.Metadata
                     Game1.objectContextTags = content.Load<Dictionary<string, string>>(key);
                     return true;
 
-                case "data/objectinformation": // Game1.LoadContent
-                    Game1.objectInformation = content.Load<Dictionary<int, string>>(key);
+                case "data/objects": // Game1.LoadContent
+                    Game1.objectData = content.Load<Dictionary<string, ObjectData>>(key);
+                    ItemRegistry.ResetCache();
                     return true;
 
                 /****
@@ -550,6 +555,7 @@ namespace StardewModdingAPI.Metadata
 
                 case "tilesheets/furniture": // Game1.LoadContent
                     Furniture.furnitureTexture = content.Load<Texture2D>(key);
+                    ItemRegistry.ResetCache();
                     return true;
 
                 case "tilesheets/furniturefront": // Game1.LoadContent
@@ -728,7 +734,7 @@ namespace StardewModdingAPI.Metadata
                 string expectedKey = animal.age.Value < animal.ageWhenMature.Value
                     ? $"Baby{(animal.type.Value == "Duck" ? "White Chicken" : animal.type.Value)}"
                     : animal.type.Value;
-                if (animal.showDifferentTextureWhenReadyForHarvest.Value && animal.currentProduce.Value <= 0)
+                if (animal.showDifferentTextureWhenReadyForHarvest.Value && animal.currentProduce.Value == null)
                     expectedKey = $"Sheared{expectedKey}";
                 expectedKey = $"Animals/{expectedKey}";
 

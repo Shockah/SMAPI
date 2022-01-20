@@ -50,7 +50,6 @@ using xTile.Display;
 using LanguageCode = StardewValley.LocalizedContentManager.LanguageCode;
 using MiniMonoModHotfix = MonoMod.Utils.MiniMonoModHotfix;
 using PathUtilities = StardewModdingAPI.Toolkit.Utilities.PathUtilities;
-using SObject = StardewValley.Object;
 
 namespace StardewModdingAPI.Framework
 {
@@ -465,10 +464,6 @@ namespace StardewModdingAPI.Framework
         /// <summary>Raised after the game finishes initializing.</summary>
         private void OnGameInitialized()
         {
-            // validate XNB integrity
-            if (!this.ValidateContentIntegrity())
-                this.Monitor.Log("SMAPI found problems in your game's content files which are likely to cause errors or crashes. Consider uninstalling XNB mods or reinstalling the game.", LogLevel.Error);
-
             // start SMAPI console
             if (this.Settings.ListenForConsoleInput)
             {
@@ -1354,61 +1349,6 @@ namespace StardewModdingAPI.Framework
         {
             return Game1.game1 as SGame
                 ?? throw new InvalidOperationException("The current game instance wasn't created by SMAPI.");
-        }
-
-        /// <summary>Look for common issues with the game's XNB content, and log warnings if anything looks broken or outdated.</summary>
-        /// <returns>Returns whether all integrity checks passed.</returns>
-        private bool ValidateContentIntegrity()
-        {
-            this.Monitor.Log("Detecting common issues...");
-            bool issuesFound = false;
-
-            // object format (commonly broken by outdated files)
-            {
-                // detect issues
-                bool hasObjectIssues = false;
-                void LogIssue(int id, string issue) => this.Monitor.Log($@"Detected issue: item #{id} in Content\Data\ObjectInformation.xnb is invalid ({issue}).");
-                foreach ((int id, string? fieldsStr) in Game1.objectInformation)
-                {
-                    // must not be empty
-                    if (string.IsNullOrWhiteSpace(fieldsStr))
-                    {
-                        LogIssue(id, "entry is empty");
-                        hasObjectIssues = true;
-                        continue;
-                    }
-
-                    // require core fields
-                    string[] fields = fieldsStr.Split('/');
-                    if (fields.Length < SObject.objectInfoDescriptionIndex + 1)
-                    {
-                        LogIssue(id, "too few fields for an object");
-                        hasObjectIssues = true;
-                        continue;
-                    }
-
-                    // check min length for specific types
-                    switch (fields[SObject.objectInfoTypeIndex].Split(' ', 2)[0])
-                    {
-                        case "Cooking":
-                            if (fields.Length < SObject.objectInfoBuffDurationIndex + 1)
-                            {
-                                LogIssue(id, "too few fields for a cooking item");
-                                hasObjectIssues = true;
-                            }
-                            break;
-                    }
-                }
-
-                // log error
-                if (hasObjectIssues)
-                {
-                    issuesFound = true;
-                    this.Monitor.Log(@"Your Content\Data\ObjectInformation.xnb file seems to be broken or outdated.", LogLevel.Warn);
-                }
-            }
-
-            return !issuesFound;
         }
 
         /// <summary>Set the titles for the game and console windows.</summary>

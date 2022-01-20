@@ -48,7 +48,8 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Player
                     break;
 
                 case "pants":
-                    Game1.player.pantsColor.Value = color;
+                    Game1.player.changePantsColor(color);
+                    Game1.player.UpdateClothing();
                     monitor.Log("OK, your pants color is updated.", LogLevel.Info);
                     break;
             }

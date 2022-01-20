@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using StardewModdingAPI.Mods.ConsoleCommands.Framework.ItemData;
 
 namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Player
 {
@@ -47,7 +46,7 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Player
                 .ToArray();
             string summary = "Searching...\n";
             if (matches.Any())
-                monitor.Log(summary + this.GetTableString(matches, new[] { "type", "name", "id" }, val => new[] { val.Type.ToString(), val.Name, val.ID.ToString() }), LogLevel.Info);
+                monitor.Log(summary + this.GetTableString(matches, new[] { "name", "id" }, val => new[] { val.Name, val.QualifiedItemId }), LogLevel.Info);
             else
                 monitor.Log(summary + "No items found", LogLevel.Info);
         }
@@ -67,7 +66,7 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Player
             // find matches
             return (
                 from item in this.Items.GetAll()
-                let term = $"{item.ID}|{item.Type}|{item.Name}|{item.DisplayName}"
+                let term = $"{item.QualifiedItemId}|{item.Type}|{item.Name}|{item.DisplayName}"
                 where getAll || searchWords.All(word => term.IndexOf(word, StringComparison.CurrentCultureIgnoreCase) != -1)
                 select item
             );
