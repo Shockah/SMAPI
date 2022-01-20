@@ -550,8 +550,7 @@ namespace StardewModdingAPI.Metadata
                     return true;
 
                 case "tilesheets/fruittrees": // FruitTree
-                    FruitTree.texture = content.Load<Texture2D>(key);
-                    return true;
+                    return this.UpdateDefaultFruitTreeTexture(content, assetName);
 
                 case "tilesheets/furniture": // Game1.LoadContent
                     Furniture.furnitureTexture = content.Load<Texture2D>(key);
@@ -605,27 +604,27 @@ namespace StardewModdingAPI.Metadata
                     return true;
 
                 case "terrainfeatures/mushroom_tree": // from Tree
-                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.mushroomTree));
+                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.mushroomTree.ToString()));
 
                 case "terrainfeatures/tree_palm": // from Tree
-                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.palmTree));
+                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.palmTree.ToString()));
 
                 case "terrainfeatures/tree1_fall": // from Tree
                 case "terrainfeatures/tree1_spring": // from Tree
                 case "terrainfeatures/tree1_summer": // from Tree
                 case "terrainfeatures/tree1_winter": // from Tree
-                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.bushyTree));
+                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.bushyTree.ToString()));
 
                 case "terrainfeatures/tree2_fall": // from Tree
                 case "terrainfeatures/tree2_spring": // from Tree
                 case "terrainfeatures/tree2_summer": // from Tree
                 case "terrainfeatures/tree2_winter": // from Tree
-                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.leafyTree));
+                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.leafyTree.ToString()));
 
                 case "terrainfeatures/tree3_fall": // from Tree
                 case "terrainfeatures/tree3_spring": // from Tree
                 case "terrainfeatures/tree3_winter": // from Tree
-                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.pineTree));
+                    return changed | (!ignoreWorld && this.UpdateTreeTextures(Tree.pineTree.ToString()));
             }
 
             /****
@@ -1024,6 +1023,28 @@ namespace StardewModdingAPI.Metadata
             }
 
             return texture.IsValueCreated;
+        }
+
+        /// <summary>Update fruit trees which use the default texture.</summary>
+        /// <param name="content">The content manager through which to reload the asset.</param>
+        /// <param name="assetName">The asset name to reload.</param>
+        /// <returns>Returns whether any textures were reloaded.</returns>
+        private bool UpdateDefaultFruitTreeTexture(LocalizedContentManager content, IAssetName assetName)
+        {
+            FruitTree[] trees = this.GetLocations()
+                .SelectMany(p => p.terrainFeatures.Values.OfType<FruitTree>())
+                .Where(p => assetName.IsEquivalentTo(p.textureOverride.Value))
+                .ToArray();
+
+            if (trees.Any())
+            {
+                Texture2D texture = content.Load<Texture2D>(assetName.Name);
+                foreach (FruitTree tree in trees)
+                    tree.texture = texture;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>Update tree textures.</summary>
