@@ -73,7 +73,7 @@ namespace StardewModdingAPI.Framework.Input
                 var keyboard = new KeyboardStateBuilder(base.GetKeyboardState());
                 var mouse = new MouseStateBuilder(base.GetMouseState());
                 Vector2 cursorAbsolutePos = new((mouse.X * zoomMultiplier) + Game1.viewport.X, (mouse.Y * zoomMultiplier) + Game1.viewport.Y);
-                Vector2? playerTilePos = Context.IsPlayerFree ? Game1.player.getTileLocation() : null;
+                Vector2? playerTilePos = Context.IsPlayerFree ? Game1.player.Tile : null;
                 HashSet<SButton> reallyDown = new HashSet<SButton>(this.GetPressedButtons(keyboard, mouse, controller));
 
                 // apply overrides

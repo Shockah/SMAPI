@@ -34,11 +34,8 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.World
             }
 
             // hurry all NPCs
-            foreach (NPC npc in Utility.getAllCharacters())
+            foreach (NPC npc in Utility.getAllVillagers()) // can't use Utility.ForEachVillager since they may warp mid-iteration
             {
-                if (!npc.isVillager())
-                    continue;
-
                 monitor.Log($"Hurrying {npc.Name}...");
                 try
                 {

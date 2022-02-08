@@ -142,7 +142,7 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.World
                             this.RemoveFurniture(location, _ => true)
                             + this.RemoveObjects(location, _ => true)
                             + this.RemoveTerrainFeatures(location, _ => true)
-                            + this.RemoveLargeTerrainFeatures(location, p => everything || p is not Bush bush || bush.isDestroyable(location, p.currentTileLocation))
+                            + this.RemoveLargeTerrainFeatures(location, p => everything || p is not Bush bush || bush.isDestroyable())
                             + this.RemoveResourceClumps(location, _ => true);
                         monitor.Log($"Done! Removed {removed} entities from {location.Name}.", LogLevel.Info);
                         break;
