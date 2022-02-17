@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using StardewValley;
-using StardewValley.Locations;
 using StardewValley.Objects;
 using StardewValley.TerrainFeatures;
 using SObject = StardewValley.Object;
@@ -231,15 +230,6 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.World
             {
                 location.resourceClumps.Remove(clump);
                 removed++;
-            }
-
-            if (location is Woods woods)
-            {
-                foreach (ResourceClump clump in woods.stumps.Where(shouldRemove).ToArray())
-                {
-                    woods.stumps.Remove(clump);
-                    removed++;
-                }
             }
 
             return removed;
