@@ -57,7 +57,7 @@ namespace StardewModdingAPI.Framework.ContentManagers
         /// <summary>Get the current content locale.</summary>
         string GetLocale();
 
-        /// <summary>The locale for a language.</summary>
+        /// <summary>Get the locale for a language.</summary>
         /// <param name="language">The language.</param>
         string GetLocale(LocalizedContentManager.LanguageCode language);
 

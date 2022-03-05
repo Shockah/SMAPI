@@ -531,7 +531,7 @@ namespace StardewModdingAPI.Framework
             if (language == LocalizedContentManager.LanguageCode.mod && LocalizedContentManager.CurrentModLanguage == null)
                 return null;
 
-            return this.MainContentManager.LanguageCodeString(language);
+            return this.MainContentManager.GetLocale(language);
         }
 
         /// <summary>Dispose held resources.</summary>

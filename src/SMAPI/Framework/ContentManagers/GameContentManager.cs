@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Xna.Framework.Graphics;
@@ -56,16 +55,14 @@ namespace StardewModdingAPI.Framework.ContentManagers
         {
             this.OnLoadingFirstAsset = onLoadingFirstAsset;
             this.OnAssetLoaded = onAssetLoaded;
+
+            this.CheckGameFolderForAssetExists = true;
         }
 
         /// <inheritdoc />
         public override bool DoesAssetExist<T>(IAssetName assetName)
         {
             if (base.DoesAssetExist<T>(assetName))
-                return true;
-
-            // vanilla asset
-            if (File.Exists(Path.Combine(this.RootDirectory, $"{assetName.Name}.xnb")))
                 return true;
 
             // managed asset
