@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using StardewValley;
+using StardewValley.SaveMigrations;
 
 namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Other
 {
@@ -39,7 +40,7 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Other
             }
 
             // validate fix ID
-            if (!Enum.TryParse(rawFixId, ignoreCase: true, out SaveGame.SaveFixes fixId))
+            if (!Enum.TryParse(rawFixId, ignoreCase: true, out SaveFixes fixId))
             {
                 monitor.Log($"Invalid save ID '{rawFixId}'. Type 'help apply_save_fix' for details.", LogLevel.Error);
                 return;
@@ -50,7 +51,7 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Other
             monitor.Log($"Trying to apply save fix ID: '{fixId}'.", LogLevel.Warn);
             try
             {
-                Game1.applySaveFix(fixId);
+                SaveMigrator.ApplySingleSaveFix(fixId, this.GetLoadedItems());
                 monitor.Log("Save fix applied.", LogLevel.Info);
             }
             catch (Exception ex)
@@ -64,12 +65,24 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Other
         /*********
         ** Private methods
         *********/
+        /// <summary>Get all item instances in the world.</summary>
+        private List<Item> GetLoadedItems()
+        {
+            List<Item> loadedItems = new();
+            Utility.ForEachItem(item =>
+            {
+                loadedItems.Add(item);
+                return true;
+            });
+            return loadedItems;
+        }
+
         /// <summary>Get the valid save fix IDs.</summary>
         private IEnumerable<string> GetSaveIds()
         {
-            foreach (SaveGame.SaveFixes id in Enum.GetValues(typeof(SaveGame.SaveFixes)))
+            foreach (SaveFixes id in Enum.GetValues(typeof(SaveFixes)))
             {
-                if (id == SaveGame.SaveFixes.MAX)
+                if (id == SaveFixes.MAX)
                     continue;
 
                 yield return id.ToString();

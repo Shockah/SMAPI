@@ -258,6 +258,7 @@ namespace StardewModdingAPI.Framework
                     modHooks: new SModHooks(
                         parent: new ModHooks(),
                         beforeNewDayAfterFade: this.OnNewDayAfterFade,
+                        onStageChanged: this.OnLoadStageChanged,
                         monitor: this.Monitor
                     ),
                     multiplayer: this.Multiplayer,
