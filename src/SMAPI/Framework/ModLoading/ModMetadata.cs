@@ -22,6 +22,8 @@ namespace StardewModdingAPI.Framework.ModLoading
         /// <summary>The mod IDs which are listed as a requirement by this mod. The value for each pair indicates whether the dependency is required (i.e. not an optional dependency).</summary>
         private readonly Lazy<IDictionary<string, bool>> Dependencies;
 
+        /// <summary>The names of the assemblies provided by each mod listed as a requirement by this mod.</summary>
+        private readonly Lazy<IDictionary<string, IList<string>>> DependencyProvidedAssemblyNames;
 
         /*********
         ** Accessors
@@ -108,6 +110,7 @@ namespace StardewModdingAPI.Framework.ModLoading
             this.IsIgnored = isIgnored;
 
             this.Dependencies = new Lazy<IDictionary<string, bool>>(this.ExtractDependencies);
+            this.DependencyProvidedAssemblyNames = new Lazy<IDictionary<string, IList<string>>>(this.ExtractDependencyProvidedAssemblyNames);
         }
 
         /// <inheritdoc />
@@ -228,6 +231,16 @@ namespace StardewModdingAPI.Framework.ModLoading
         }
 
         /// <inheritdoc />
+        public IEnumerable<string> GetAssemblyNamesProvidedByRequiredMod(string modId)
+        {
+            if (this.DependencyProvidedAssemblyNames.Value.TryGetValue(modId, out IList<string> names))
+            {
+                foreach (string name in names)
+                    yield return name;
+            }
+        }
+
+        /// <inheritdoc />
         public bool HasValidUpdateKeys()
         {
             return this.GetUpdateKeys(validOnly: true).Any();
@@ -287,6 +300,24 @@ namespace StardewModdingAPI.Framework.ModLoading
             }
 
             return ids;
+        }
+
+        /// <summary>Extract names of the assemblies provided by each mod listed as a requirement by this mod.</summary>
+        /// <returns>Returns a dictionary of mod ID => list of assembly names.</returns>
+        public IDictionary<string, IList<string>> ExtractDependencyProvidedAssemblyNames()
+        {
+            var names = new Dictionary<string, IList<string>>(StringComparer.OrdinalIgnoreCase);
+
+            if (this.HasManifest())
+            {
+                foreach (IManifestDependency entry in this.Manifest.Dependencies)
+                {
+                    if (entry.ProvidedAssemblies.Count != 0)
+                        names[entry.UniqueID] = new List<string>(entry.ProvidedAssemblies);
+                }
+            }
+
+            return names;
         }
     }
 }

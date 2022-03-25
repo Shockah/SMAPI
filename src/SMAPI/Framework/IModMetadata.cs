@@ -130,6 +130,9 @@ namespace StardewModdingAPI.Framework
         /// <param name="includeOptional">Whether to include optional dependencies.</param>
         IEnumerable<string> GetRequiredModIds(bool includeOptional = false);
 
+        /// <summary>Get the names of the assemblies provided by the required mod with the specified ID.</summary>
+        IEnumerable<string> GetAssemblyNamesProvidedByRequiredMod(string modId);
+
         /// <summary>Whether the mod has at least one valid update key set.</summary>
         bool HasValidUpdateKeys();
 

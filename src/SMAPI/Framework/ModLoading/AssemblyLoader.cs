@@ -124,7 +124,7 @@ namespace StardewModdingAPI.Framework.ModLoading
                 // detect broken assembly reference
                 foreach (AssemblyNameReference reference in assembly.Definition.MainModule.AssemblyReferences)
                 {
-                    if (!reference.Name.StartsWith("System.") && !this.IsAssemblyLoaded(reference))
+                    if (!reference.Name.StartsWith("System.") && !this.IsAssemblyLoaded(reference) && !this.IsAssemblyProvidedByDependencies(mod, reference))
                     {
                         this.Monitor.LogOnce(loggedMessages, $"      Broken code in {assembly.File.Name}: reference to missing assembly '{reference.FullName}'.");
                         if (!assumeCompatible)
@@ -219,6 +219,19 @@ namespace StardewModdingAPI.Framework.ModLoading
         /****
         ** Assembly parsing
         ****/
+        /// <summary>Get whether a specific assembly reference is provided by the mod's dependencies.</summary>
+        /// <param name="mod">The mod for which the assembly is being loaded.</param>
+        /// <param name="reference">The assembly reference to check for.</param>
+        /// <returns>Returns whether the specific assembly reference is provided by the mod's dependencies.</returns>
+        private bool IsAssemblyProvidedByDependencies(IModMetadata mod, AssemblyNameReference reference)
+        {
+            foreach (string dependencyModId in mod.GetRequiredModIds(true))
+                foreach (string providedAssemblyName in mod.GetAssemblyNamesProvidedByRequiredMod(dependencyModId))
+                    if (providedAssemblyName == reference.Name)
+                        return true;
+            return false;
+        }
+
         /// <summary>Get a list of referenced local assemblies starting from the mod assembly, ordered from leaf to root.</summary>
         /// <param name="file">The assembly file to load.</param>
         /// <param name="visitedAssemblyNames">The assembly names that should be skipped.</param>

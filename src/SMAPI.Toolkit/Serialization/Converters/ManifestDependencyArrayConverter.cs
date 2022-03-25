@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StardewModdingAPI.Toolkit.Serialization.Models;
@@ -43,7 +44,8 @@ namespace StardewModdingAPI.Toolkit.Serialization.Converters
                 string uniqueID = obj.ValueIgnoreCase<string>(nameof(ManifestDependency.UniqueID));
                 string minVersion = obj.ValueIgnoreCase<string>(nameof(ManifestDependency.MinimumVersion));
                 bool required = obj.ValueIgnoreCase<bool?>(nameof(ManifestDependency.IsRequired)) ?? true;
-                result.Add(new ManifestDependency(uniqueID, minVersion, required));
+                IList<string> providedAssemblies = obj.ValueIgnoreCase<JArray>(nameof(ManifestDependency.ProvidedAssemblies))?.Select(a => (string)a)?.ToList();
+                result.Add(new ManifestDependency(uniqueID, minVersion, required, providedAssemblies));
             }
             return result.ToArray();
         }

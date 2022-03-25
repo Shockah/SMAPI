@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace StardewModdingAPI
 {
     /// <summary>A mod dependency listed in a mod manifest.</summary>
@@ -14,5 +16,8 @@ namespace StardewModdingAPI
 
         /// <summary>Whether the dependency must be installed to use the mod.</summary>
         bool IsRequired { get; }
+
+        /// <summary>The names of the assemblies this dependency provides.</summary>
+        IList<string> ProvidedAssemblies { get; }
     }
 }

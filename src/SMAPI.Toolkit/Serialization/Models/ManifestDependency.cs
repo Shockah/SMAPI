@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace StardewModdingAPI.Toolkit.Serialization.Models
 {
     /// <summary>A mod dependency listed in a mod manifest.</summary>
@@ -6,14 +8,17 @@ namespace StardewModdingAPI.Toolkit.Serialization.Models
         /*********
         ** Accessors
         *********/
-        /// <summary>The unique mod ID to require.</summary>
+        /// <inheritdoc/>
         public string UniqueID { get; set; }
 
-        /// <summary>The minimum required version (if any).</summary>
+        /// <inheritdoc/>
         public ISemanticVersion MinimumVersion { get; set; }
 
-        /// <summary>Whether the dependency must be installed to use the mod.</summary>
+        /// <inheritdoc/>
         public bool IsRequired { get; set; }
+
+        /// <inheritdoc/>
+        public IList<string> ProvidedAssemblies { get; set; }
 
 
         /*********
@@ -23,13 +28,17 @@ namespace StardewModdingAPI.Toolkit.Serialization.Models
         /// <param name="uniqueID">The unique mod ID to require.</param>
         /// <param name="minimumVersion">The minimum required version (if any).</param>
         /// <param name="required">Whether the dependency must be installed to use the mod.</param>
-        public ManifestDependency(string uniqueID, string minimumVersion, bool required = true)
+        /// <param name="providedAssemblies">The names of the assemblies provided by the dependency.</param>
+        public ManifestDependency(string uniqueID, string minimumVersion, bool required = true, IList<string> providedAssemblies = null)
         {
             this.UniqueID = uniqueID;
             this.MinimumVersion = !string.IsNullOrWhiteSpace(minimumVersion)
                 ? new SemanticVersion(minimumVersion)
                 : null;
             this.IsRequired = required;
+            this.ProvidedAssemblies = providedAssemblies is null
+                ? new List<string>()
+                : new List<string>(providedAssemblies);
         }
     }
 }
