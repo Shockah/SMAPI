@@ -1,12 +1,19 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI.Enums;
+using StardewModdingAPI.Internal;
 using StardewModdingAPI.Utilities;
 using StardewValley;
+using StardewValley.Menus;
+using StardewValley.Mods;
 
 namespace StardewModdingAPI.Framework
 {
     /// <summary>Invokes callbacks for mod hooks provided by the game.</summary>
+    [SuppressMessage("ReSharper", "InconsistentNaming", Justification = "Inherited from the game code.")]
     internal class SModHooks : DelegatingModHooks
     {
         /*********
@@ -21,6 +28,12 @@ namespace StardewModdingAPI.Framework
         /// <summary>A callback to invoke when the load stage changes.</summary>
         private readonly Action<LoadStage> OnStageChanged;
 
+        /// <summary>A callback to invoke when the game starts a render step in the draw loop.</summary>
+        private readonly Action<RenderSteps, SpriteBatch, RenderTarget2D> OnRenderingStep;
+
+        /// <summary>A callback to invoke when the game finishes a render step in the draw loop.</summary>
+        private readonly Action<RenderSteps, SpriteBatch, RenderTarget2D> OnRenderedStep;
+
 
         /*********
         ** Public methods
@@ -29,13 +42,17 @@ namespace StardewModdingAPI.Framework
         /// <param name="parent">The underlying hooks to call by default.</param>
         /// <param name="beforeNewDayAfterFade">A callback to invoke before <see cref="Game1.newDayAfterFade"/> runs.</param>
         /// <param name="onStageChanged">A callback to invoke when the load stage changes.</param>
+        /// <param name="onRenderingStep">A callback to invoke when the game starts a render step in the draw loop.</param>
+        /// <param name="onRenderedStep">A callback to invoke when the game finishes a render step in the draw loop.</param>
         /// <param name="monitor">Writes messages to the console.</param>
-        public SModHooks(ModHooks parent, Action beforeNewDayAfterFade, Action<LoadStage> onStageChanged, IMonitor monitor)
+        public SModHooks(ModHooks parent, Action beforeNewDayAfterFade, Action<LoadStage> onStageChanged, Action<RenderSteps, SpriteBatch, RenderTarget2D> onRenderingStep, Action<RenderSteps, SpriteBatch, RenderTarget2D> onRenderedStep, IMonitor monitor)
             : base(parent)
         {
+            this.Monitor = monitor;
             this.BeforeNewDayAfterFade = beforeNewDayAfterFade;
             this.OnStageChanged = onStageChanged;
-            this.Monitor = monitor;
+            this.OnRenderingStep = onRenderingStep;
+            this.OnRenderedStep = onRenderedStep;
         }
 
         /// <inheritdoc />
@@ -63,16 +80,46 @@ namespace StardewModdingAPI.Framework
             return task;
         }
 
-        /// <summary>A hook invoked when creating a new save slot, after the game has added the location instances but before it fully initializes them.</summary>
+        /// <inheritdoc />
         public override void CreatedInitialLocations()
         {
             this.OnStageChanged(LoadStage.CreatedInitialLocations);
         }
 
-        /// <summary>A hook invoked when loading a save slot, after the game has added the location instances but before it restores their save data. Not applicable when connecting to a multiplayer host.</summary>
+        /// <inheritdoc />
         public override void SaveAddedLocations()
         {
             this.OnStageChanged(LoadStage.SaveAddedLocations);
+        }
+
+        /// <inheritdoc />
+        public override bool OnRendering(RenderSteps step, SpriteBatch sb, GameTime time, RenderTarget2D target_screen)
+        {
+            this.OnRenderingStep(step, sb, target_screen);
+
+            return true;
+        }
+
+        /// <inheritdoc />
+        public override void OnRendered(RenderSteps step, SpriteBatch sb, GameTime time, RenderTarget2D target_screen)
+        {
+            this.OnRenderedStep(step, sb, target_screen);
+        }
+
+        /// <inheritdoc />
+        public override bool TryDrawMenu(IClickableMenu menu, Action draw_menu_action)
+        {
+            try
+            {
+                draw_menu_action();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                this.Monitor.Log($"The {menu.GetMenuChainLabel()} menu crashed while drawing itself. SMAPI will force it to exit to avoid crashing the game.\n{ex.GetLogSummary()}", LogLevel.Error);
+                Game1.activeClickableMenu.exitThisMenu();
+                return false;
+            }
         }
     }
 }

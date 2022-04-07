@@ -1,15 +1,21 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Framework;
 using StardewValley;
 using StardewValley.Events;
+using StardewValley.Menus;
+using StardewValley.Mods;
 
 namespace StardewModdingAPI.Utilities
 {
     /// <summary>An implementation of <see cref="ModHooks"/> which automatically calls the parent instance for any method that's not overridden.</summary>
     /// <remarks>The mod hooks are primarily meant for SMAPI to use. Using this directly in mods is a last resort, since it's very easy to break SMAPI this way. This class requires that SMAPI is present in the parent chain.</remarks>
+    [SuppressMessage("ReSharper", "InconsistentNaming", Justification = "Inherited from the game code.")]
     public class DelegatingModHooks : ModHooks
     {
         /*********
@@ -92,6 +98,56 @@ namespace StardewModdingAPI.Utilities
         public override FarmEvent OnUtility_PickFarmEvent(Func<FarmEvent> action)
         {
             return this.Parent.OnUtility_PickFarmEvent(action);
+        }
+
+        /// <summary>Raised after the player crosses a mutex barrier in the new-day initialization before saving.</summary>
+        /// <param name="barrier_id">The barrier ID set in the new-day code.</param>
+        public override void AfterNewDayBarrier(string barrier_id)
+        {
+            this.Parent.AfterNewDayBarrier(barrier_id);
+        }
+
+        /// <summary>Raised when creating a new save slot, after the game has added the location instances but before it fully initializes them.</summary>
+        public override void CreatedInitialLocations()
+        {
+            this.Parent.CreatedInitialLocations();
+        }
+
+        /// <summary>Raised when loading a save slot, after the game has added the location instances but before it restores their save data. Not applicable when connecting to a multiplayer host.</summary>
+        public override void SaveAddedLocations()
+        {
+            this.Parent.SaveAddedLocations();
+        }
+
+        /// <summary>Raised before the game renders content to the screen in the draw loop.</summary>
+        /// <param name="step">The render step being started.</param>
+        /// <param name="sb">The sprite batch being drawn (which might not always be open yet).</param>
+        /// <param name="time">A snapshot of the game timing state.</param>
+        /// <param name="target_screen">The render target, if any.</param>
+        /// <returns>Returns whether to continue with the render step.</returns>
+        public override bool OnRendering(RenderSteps step, SpriteBatch sb, GameTime time, RenderTarget2D target_screen)
+        {
+            return this.Parent.OnRendering(step, sb, time, target_screen);
+        }
+
+        /// <summary>Raised after the game renders content to the screen in the draw loop.</summary>
+        /// <param name="step">The render step being started.</param>
+        /// <param name="sb">The sprite batch being drawn (which might not always be open yet).</param>
+        /// <param name="time">A snapshot of the game timing state.</param>
+        /// <param name="target_screen">The render target, if any.</param>
+        /// <returns>Returns whether to continue with the render step.</returns>
+        public override void OnRendered(RenderSteps step, SpriteBatch sb, GameTime time, RenderTarget2D target_screen)
+        {
+            this.Parent.OnRendered(step, sb, time, target_screen);
+        }
+
+        /// <summary>Draw a menu (or child menu) if possible.</summary>
+        /// <param name="menu">The menu to draw.</param>
+        /// <param name="draw_menu_action">The action which draws the menu.</param>
+        /// <returns>Returns whether the menu was successfully drawn.</returns>
+        public override bool TryDrawMenu(IClickableMenu menu, Action draw_menu_action)
+        {
+            return this.Parent.TryDrawMenu(menu, draw_menu_action);
         }
 
         /// <summary>Start an asynchronous task for the game.</summary>

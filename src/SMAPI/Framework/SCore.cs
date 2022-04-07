@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 #if SMAPI_FOR_WINDOWS
 using Microsoft.Win32;
 #endif
@@ -44,6 +45,7 @@ using StardewModdingAPI.Toolkit.Utilities.PathLookups;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Menus;
+using StardewValley.Mods;
 using StardewValley.Objects;
 using StardewValley.SDKs;
 using xTile.Display;
@@ -144,6 +146,10 @@ namespace StardewModdingAPI.Framework
 
         /// <summary>A list of commands to execute on each screen.</summary>
         private readonly PerScreen<List<QueuedCommand>> ScreenCommandQueue = new(() => new List<QueuedCommand>());
+
+        /// <summary>The last <see cref="ProcessTicksElapsed"/> for which display events were raised.</summary>
+        private readonly PerScreen<uint> LastRenderEventTick = new();
+
 
         /*********
         ** Accessors
@@ -254,11 +260,12 @@ namespace StardewModdingAPI.Framework
                 this.Game = new SGameRunner(
                     monitor: this.Monitor,
                     reflection: this.Reflection,
-                    eventManager: this.EventManager,
                     modHooks: new SModHooks(
                         parent: new ModHooks(),
                         beforeNewDayAfterFade: this.OnNewDayAfterFade,
                         onStageChanged: this.OnLoadStageChanged,
+                        onRenderingStep: this.OnRenderingStep,
+                        onRenderedStep: this.OnRenderedStep,
                         monitor: this.Monitor
                     ),
                     multiplayer: this.Multiplayer,
@@ -267,6 +274,7 @@ namespace StardewModdingAPI.Framework
                     onGameContentLoaded: this.OnInstanceContentLoaded,
                     onGameUpdating: this.OnGameUpdating,
                     onPlayerInstanceUpdating: this.OnPlayerInstanceUpdating,
+                    onPlayerInstanceRendered: this.OnRendered,
                     onGameExiting: this.OnGameExiting
                 );
                 StardewValley.GameRunner.instance = this.Game;
@@ -1181,6 +1189,113 @@ namespace StardewModdingAPI.Framework
                 events.LoadStageChanged.Raise(new LoadStageChangedEventArgs(oldStage, newStage));
             if (newStage == LoadStage.None)
                 events.ReturnedToTitle.RaiseEmpty();
+        }
+
+        /// <summary>Raised when the game starts a render step in the draw loop.</summary>
+        /// <param name="step">The render step being started.</param>
+        /// <param name="spriteBatch">The sprite batch being drawn (which might not always be open yet).</param>
+        /// <param name="renderTarget">The render target being drawn.</param>
+        private void OnRenderingStep(RenderSteps step, SpriteBatch spriteBatch, RenderTarget2D renderTarget)
+        {
+            EventManager events = this.EventManager;
+
+            // raise 'Rendering' before first event
+            if (this.LastRenderEventTick.Value != SCore.TicksElapsed)
+            {
+                this.RaiseRenderEvent(events.Rendering, spriteBatch, renderTarget);
+                this.LastRenderEventTick.Value = SCore.TicksElapsed;
+            }
+
+            // raise other events
+            switch (step)
+            {
+                case RenderSteps.World:
+                    this.RaiseRenderEvent(events.RenderingWorld, spriteBatch, renderTarget);
+                    break;
+
+                case RenderSteps.Menu:
+                    this.RaiseRenderEvent(events.RenderingActiveMenu, spriteBatch, renderTarget);
+                    break;
+
+                case RenderSteps.HUD:
+                    this.RaiseRenderEvent(events.RenderingHud, spriteBatch, renderTarget);
+                    break;
+            }
+        }
+
+        /// <summary>Raised when the game finishes a render step in the draw loop.</summary>
+        /// <param name="step">The render step being started.</param>
+        /// <param name="spriteBatch">The sprite batch being drawn (which might not always be open yet).</param>
+        /// <param name="renderTarget">The render target being drawn.</param>
+        private void OnRenderedStep(RenderSteps step, SpriteBatch spriteBatch, RenderTarget2D renderTarget)
+        {
+            var events = this.EventManager;
+
+            switch (step)
+            {
+                case RenderSteps.World:
+                    this.RaiseRenderEvent(events.RenderedWorld, spriteBatch, renderTarget);
+                    break;
+
+                case RenderSteps.Menu:
+                    this.RaiseRenderEvent(events.RenderedActiveMenu, spriteBatch, renderTarget);
+                    break;
+
+                case RenderSteps.HUD:
+                    this.RaiseRenderEvent(events.RenderedHud, spriteBatch, renderTarget);
+                    break;
+            }
+        }
+
+        /// <summary>Raised after an instance finishes a draw loop.</summary>
+        /// <param name="renderTarget">The render target being drawn to the screen.</param>
+        private void OnRendered(RenderTarget2D renderTarget)
+        {
+            this.RaiseRenderEvent(this.EventManager.Rendered, Game1.spriteBatch, renderTarget);
+        }
+
+        /// <summary>Raise a rendering/rendered event, temporarily opening the given sprite batch if needed to let mods draw to it.</summary>
+        /// <typeparam name="TEventArgs">The event args type to construct.</typeparam>
+        /// <param name="event">The event to raise.</param>
+        /// <param name="spriteBatch">The sprite batch being drawn to the screen.</param>
+        /// <param name="renderTarget">The render target being drawn to the screen.</param>
+        private void RaiseRenderEvent<TEventArgs>(ManagedEvent<TEventArgs> @event, SpriteBatch spriteBatch, RenderTarget2D renderTarget)
+            where TEventArgs : EventArgs, new()
+        {
+            if (!@event.HasListeners)
+                return;
+
+            bool wasOpen = spriteBatch.IsOpen(this.Reflection);
+            bool hadRenderTarget = Game1.graphics.GraphicsDevice.RenderTargetCount > 0;
+
+            if (!hadRenderTarget && !Game1.IsOnMainThread())
+                return; // can't set render target on background thread
+
+            try
+            {
+                if (!wasOpen)
+                    Game1.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
+
+                if (!hadRenderTarget)
+                {
+                    renderTarget ??= Game1.game1.uiScreen?.IsDisposed != true
+                        ? Game1.game1.uiScreen
+                        : Game1.nonUIRenderTarget;
+
+                    if (renderTarget != null)
+                        Game1.SetRenderTarget(renderTarget);
+                }
+
+                @event.RaiseEmpty();
+            }
+            finally
+            {
+                if (!wasOpen)
+                    spriteBatch.End();
+
+                if (!hadRenderTarget && renderTarget != null)
+                    Game1.SetRenderTarget(null);
+            }
         }
 
         /// <summary>A callback invoked before <see cref="Game1.newDayAfterFade"/> runs.</summary>
