@@ -63,7 +63,7 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Other
             }
 
             // get private fields
-            IWorldState state = Game1.netWorldState.Value;
+            NetWorldState state = Game1.netWorldState.Value;
             var bundleData = state.GetType().GetField("_bundleData", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)?.GetValue(state) as IDictionary<string, string>
                 ?? throw new InvalidOperationException("Can't access '_bundleData' field on world state.");
             var netBundleData = state.GetType().GetField("netBundleData", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)?.GetValue(state) as NetStringDictionary<string, NetString>
