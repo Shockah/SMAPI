@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI.Framework.Input;
 using StardewModdingAPI.Framework.Reflection;
 using StardewValley;
+using StardewValley.Logging;
 
 namespace StardewModdingAPI.Framework
 {
@@ -26,6 +27,9 @@ namespace StardewModdingAPI.Framework
 
         /// <summary>The core SMAPI mod hooks.</summary>
         private readonly SModHooks ModHooks;
+
+        /// <summary>The game log output handler.</summary>
+        private readonly IGameLogger GameLogger;
 
         /// <summary>The core multiplayer logic.</summary>
         private readonly SMultiplayer Multiplayer;
@@ -60,6 +64,7 @@ namespace StardewModdingAPI.Framework
         /// <param name="monitor">Encapsulates monitoring and logging for SMAPI.</param>
         /// <param name="reflection">Simplifies access to private game code.</param>
         /// <param name="modHooks">Handles mod hooks provided by the game.</param>
+        /// <param name="gameLogger">The game log output handler.</param>
         /// <param name="multiplayer">The core multiplayer logic.</param>
         /// <param name="exitGameImmediately">Immediately exit the game without saving. This should only be invoked when an irrecoverable fatal error happens that risks save corruption or game-breaking bugs.</param>
         /// <param name="onGameContentLoaded">Raised after the game finishes loading its initial content.</param>
@@ -67,13 +72,14 @@ namespace StardewModdingAPI.Framework
         /// <param name="onPlayerInstanceUpdating">Raised when the game instance for a local split-screen player is updating (once per <see cref="OnGameUpdating"/> per player).</param>
         /// <param name="onPlayerInstanceRendered">Raised after an instance finishes a draw loop.</param>
         /// <param name="onGameExiting">Raised before the game exits.</param>
-        public SGameRunner(Monitor monitor, Reflector reflection, SModHooks modHooks, SMultiplayer multiplayer, Action<string> exitGameImmediately, Action onGameContentLoaded, Action<GameTime, Action> onGameUpdating, Action<SGame, GameTime, Action> onPlayerInstanceUpdating, Action onGameExiting, Action<RenderTarget2D> onPlayerInstanceRendered)
+        public SGameRunner(Monitor monitor, Reflector reflection, SModHooks modHooks, IGameLogger gameLogger, SMultiplayer multiplayer, Action<string> exitGameImmediately, Action onGameContentLoaded, Action<GameTime, Action> onGameUpdating, Action<SGame, GameTime, Action> onPlayerInstanceUpdating, Action onGameExiting, Action<RenderTarget2D> onPlayerInstanceRendered)
         {
             // init XNA
             Game1.graphics.GraphicsProfile = GraphicsProfile.HiDef;
 
             // hook into game
             this.ModHooks = modHooks;
+            this.GameLogger = gameLogger;
 
             // init SMAPI
             this.Monitor = monitor;
@@ -100,6 +106,7 @@ namespace StardewModdingAPI.Framework
                 reflection: this.Reflection,
                 input: inputState,
                 modHooks: this.ModHooks,
+                gameLogger: this.GameLogger,
                 multiplayer: this.Multiplayer,
                 exitGameImmediately: this.ExitGameImmediately,
                 onUpdating: this.OnPlayerInstanceUpdating,

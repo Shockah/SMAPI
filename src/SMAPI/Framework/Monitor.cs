@@ -18,9 +18,6 @@ namespace StardewModdingAPI.Framework
         /// <summary>Handles writing text to the console.</summary>
         private readonly IConsoleWriter ConsoleWriter;
 
-        /// <summary>Prefixing a message with this character indicates that the console interceptor should write the string without intercepting it. (The character itself is not written.)</summary>
-        private readonly char IgnoreChar;
-
         /// <summary>The log file to which to write messages.</summary>
         private readonly LogFileManager LogFile;
 
@@ -58,12 +55,11 @@ namespace StardewModdingAPI.Framework
         *********/
         /// <summary>Construct an instance.</summary>
         /// <param name="source">The name of the module which logs messages using this instance.</param>
-        /// <param name="ignoreChar">A character which indicates the message should not be intercepted if it appears as the first character of a string written to the console. The character itself is not logged in that case.</param>
         /// <param name="logFile">The log file to which to write messages.</param>
         /// <param name="colorConfig">The colors to use for text written to the SMAPI console.</param>
         /// <param name="isVerbose">Whether verbose logging is enabled. This enables more detailed diagnostic messages than are normally needed.</param>
         /// <param name="getScreenIdForLog">Get the screen ID that should be logged to distinguish between players in split-screen mode, if any.</param>
-        public Monitor(string source, char ignoreChar, LogFileManager logFile, ColorSchemeConfig colorConfig, bool isVerbose, Func<int?> getScreenIdForLog)
+        public Monitor(string source, LogFileManager logFile, ColorSchemeConfig colorConfig, bool isVerbose, Func<int?> getScreenIdForLog)
         {
             // validate
             if (string.IsNullOrWhiteSpace(source))
@@ -73,7 +69,6 @@ namespace StardewModdingAPI.Framework
             this.Source = source;
             this.LogFile = logFile ?? throw new ArgumentNullException(nameof(logFile), "The log file manager cannot be null.");
             this.ConsoleWriter = new ColorfulConsoleWriter(Constants.Platform, colorConfig);
-            this.IgnoreChar = ignoreChar;
             this.IsVerbose = isVerbose;
             this.GetScreenIdForLog = getScreenIdForLog;
         }
@@ -139,7 +134,7 @@ namespace StardewModdingAPI.Framework
 
             // write to console
             if (this.WriteToConsole && (this.ShowTraceInConsole || level != ConsoleLogLevel.Trace))
-                this.ConsoleWriter.WriteLine(this.IgnoreChar + consoleMessage, level);
+                this.ConsoleWriter.WriteLine(consoleMessage, level);
 
             // write to log file
             this.LogFile.WriteLine(fullMessage);

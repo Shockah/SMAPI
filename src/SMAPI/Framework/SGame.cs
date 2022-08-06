@@ -11,6 +11,7 @@ using StardewModdingAPI.Framework.Utilities;
 using StardewModdingAPI.Internal;
 using StardewModdingAPI.Utilities;
 using StardewValley;
+using StardewValley.Logging;
 
 namespace StardewModdingAPI.Framework
 {
@@ -92,12 +93,13 @@ namespace StardewModdingAPI.Framework
         /// <param name="reflection">Simplifies access to private game code.</param>
         /// <param name="input">Manages the game's input state.</param>
         /// <param name="modHooks">Handles mod hooks provided by the game.</param>
+        /// <param name="gameLogger">The game log output handler.</param>
         /// <param name="multiplayer">The core multiplayer logic.</param>
         /// <param name="exitGameImmediately">Immediately exit the game without saving. This should only be invoked when an irrecoverable fatal error happens that risks save corruption or game-breaking bugs.</param>
         /// <param name="onUpdating">Raised when the instance is updating its state (roughly 60 times per second).</param>
         /// <param name="onContentLoaded">Raised after the game finishes loading its initial content.</param>
         /// <param name="onRendered">Raised after the instance finishes a draw loop.</param>
-        public SGame(PlayerIndex playerIndex, int instanceIndex, Monitor monitor, Reflector reflection, SInputState input, SModHooks modHooks, SMultiplayer multiplayer, Action<string> exitGameImmediately, Action<SGame, GameTime, Action> onUpdating, Action onContentLoaded, Action<RenderTarget2D> onRendered)
+        public SGame(PlayerIndex playerIndex, int instanceIndex, Monitor monitor, Reflector reflection, SInputState input, SModHooks modHooks, IGameLogger gameLogger, SMultiplayer multiplayer, Action<string> exitGameImmediately, Action<SGame, GameTime, Action> onUpdating, Action onContentLoaded, Action<RenderTarget2D> onRendered)
             : base(playerIndex, instanceIndex)
         {
             // init XNA
@@ -105,6 +107,7 @@ namespace StardewModdingAPI.Framework
 
             // hook into game
             Game1.input = this.InitialInput = input;
+            Game1.log = gameLogger;
             Game1.multiplayer = this.InitialMultiplayer = multiplayer;
             Game1.hooks = modHooks;
             this._locations = new ObservableCollection<GameLocation>();

@@ -268,6 +268,7 @@ namespace StardewModdingAPI.Framework
                         onRenderedStep: this.OnRenderedStep,
                         monitor: this.Monitor
                     ),
+                    gameLogger: new SGameLogger(this.GetMonitorForGame()),
                     multiplayer: this.Multiplayer,
                     exitGameImmediately: this.ExitGameImmediately,
 
