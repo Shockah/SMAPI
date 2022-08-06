@@ -143,7 +143,7 @@ namespace StardewModdingAPI.Framework
         /// <summary>Construct a content manager to read game content files.</summary>
         /// <param name="serviceProvider">The service provider to use to locate services.</param>
         /// <param name="rootDirectory">The root directory to search for content.</param>
-        protected override LocalizedContentManager CreateContentManager(IServiceProvider serviceProvider, string rootDirectory)
+        protected internal override LocalizedContentManager CreateContentManager(IServiceProvider serviceProvider, string rootDirectory)
         {
             if (SGame.CreateContentManagerImpl == null)
                 throw new InvalidOperationException($"The {nameof(SGame)}.{nameof(SGame.CreateContentManagerImpl)} must be set.");

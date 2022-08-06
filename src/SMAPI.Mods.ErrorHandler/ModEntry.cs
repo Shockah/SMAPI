@@ -1,6 +1,5 @@
-using System;
-using System.Reflection;
 using StardewModdingAPI.Events;
+using StardewModdingAPI.Framework;
 using StardewModdingAPI.Internal.Patching;
 using StardewModdingAPI.Mods.ErrorHandler.Patches;
 using StardewValley;
@@ -25,7 +24,7 @@ namespace StardewModdingAPI.Mods.ErrorHandler
         public override void Entry(IModHelper helper)
         {
             // get SMAPI core types
-            IMonitor monitorForGame = this.GetMonitorForGame();
+            IMonitor monitorForGame = SCore.Instance.GetMonitorForGame();
 
             // apply patches
             HarmonyPatcher.Apply(this.ModManifest.UniqueID, this.Monitor,
@@ -61,22 +60,6 @@ namespace StardewModdingAPI.Mods.ErrorHandler
                 this.IsSaveContentRemoved = false;
                 Game1.addHUDMessage(new HUDMessage(this.Helper.Translation.Get("warn.invalid-content-removed"), HUDMessage.error_type));
             }
-        }
-
-        /// <summary>Get the monitor with which to log game errors.</summary>
-        private IMonitor GetMonitorForGame()
-        {
-            // get SMAPI core
-            Type coreType = Type.GetType("StardewModdingAPI.Framework.SCore, StardewModdingAPI", throwOnError: false)
-                ?? throw new InvalidOperationException("Can't access SMAPI's core type. This mod may not work correctly.");
-            object core = coreType.GetProperty("Instance", BindingFlags.Static | BindingFlags.NonPublic)?.GetValue(null)
-                ?? throw new InvalidOperationException("Can't access SMAPI's core instance. This mod may not work correctly.");
-
-            // get monitor
-            MethodInfo getMonitorForGame = coreType.GetMethod("GetMonitorForGame")
-                ?? throw new InvalidOperationException("Can't access the SMAPI's 'GetMonitorForGame' method. This mod may not work correctly.");
-
-            return (IMonitor?)getMonitorForGame.Invoke(core, Array.Empty<object>()) ?? this.Monitor;
         }
     }
 }

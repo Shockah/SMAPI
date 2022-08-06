@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using HarmonyLib;
 using StardewModdingAPI.Enums;
-using StardewModdingAPI.Framework.Reflection;
 using StardewModdingAPI.Internal.Patching;
 using StardewValley;
 using StardewValley.Menus;
@@ -19,9 +18,6 @@ namespace StardewModdingAPI.Patches
         /*********
         ** Fields
         *********/
-        /// <summary>Simplifies access to private code.</summary>
-        private static Reflector Reflection = null!; // initialized in constructor
-
         /// <summary>A callback to invoke when the load stage changes.</summary>
         private static Action<LoadStage> OnStageChanged = null!; // initialized in constructor
 
@@ -30,11 +26,9 @@ namespace StardewModdingAPI.Patches
         ** Public methods
         *********/
         /// <summary>Construct an instance.</summary>
-        /// <param name="reflection">Simplifies access to private code.</param>
         /// <param name="onStageChanged">A callback to invoke when the load stage changes.</param>
-        public Game1Patcher(Reflector reflection, Action<LoadStage> onStageChanged)
+        public Game1Patcher(Action<LoadStage> onStageChanged)
         {
-            Game1Patcher.Reflection = reflection;
             Game1Patcher.OnStageChanged = onStageChanged;
         }
 
@@ -80,7 +74,7 @@ namespace StardewModdingAPI.Patches
         {
             return
                 (Game1.currentMinigame is Intro) // creating save with intro
-                || (Game1.activeClickableMenu is TitleMenu menu && Game1Patcher.Reflection.GetField<bool>(menu, "transitioningCharacterCreationMenu").GetValue()); // creating save, skipped intro
+                || (Game1.activeClickableMenu is TitleMenu menu && menu.transitioningCharacterCreationMenu); // creating save, skipped intro
         }
     }
 }

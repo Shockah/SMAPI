@@ -255,7 +255,7 @@ namespace StardewModdingAPI.Framework
                 LocalizedContentManager.OnLanguageChange += _ => this.OnLocaleChanged();
 
                 // override game
-                this.Multiplayer = new SMultiplayer(this.Monitor, this.EventManager, this.Toolkit.JsonHelper, this.ModRegistry, this.Reflection, this.OnModMessageReceived, this.Settings.LogNetworkTraffic);
+                this.Multiplayer = new SMultiplayer(this.Monitor, this.EventManager, this.Toolkit.JsonHelper, this.ModRegistry, this.OnModMessageReceived, this.Settings.LogNetworkTraffic);
                 SGame.CreateContentManagerImpl = this.CreateContentManager; // must be static since the game accesses it before the SGame constructor is called
                 this.Game = new SGameRunner(
                     monitor: this.Monitor,
@@ -282,7 +282,7 @@ namespace StardewModdingAPI.Framework
                 // apply game patches
                 MiniMonoModHotfix.Apply();
                 HarmonyPatcher.Apply("SMAPI", this.Monitor,
-                    new Game1Patcher(this.Reflection, this.OnLoadStageChanged),
+                    new Game1Patcher(this.OnLoadStageChanged),
                     new TitleMenuPatcher(this.OnLoadStageChanged)
                 );
 
@@ -663,7 +663,7 @@ namespace StardewModdingAPI.Framework
                 if (Game1.currentLoader != null)
                 {
                     this.Monitor.Log("Game loader synchronizing...");
-                    this.Reflection.GetMethod(Game1.game1, "UpdateTitleScreen").Invoke(Game1.currentGameTime); // run game logic to change music on load, etc
+                    Game1.game1.UpdateTitleScreen(Game1.currentGameTime); // run game logic to change music on load, etc
                     // ReSharper disable once ConstantConditionalAccessQualifier -- may become null within the loop
                     while (Game1.currentLoader?.MoveNext() == true)
                     {
