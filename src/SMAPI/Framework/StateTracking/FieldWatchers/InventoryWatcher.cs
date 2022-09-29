@@ -1,25 +1,24 @@
 using System.Collections.Generic;
-using Netcode;
 using StardewModdingAPI.Framework.StateTracking.Comparers;
+using StardewValley;
+using StardewValley.Inventories;
 
 namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
 {
-    /// <summary>A watcher which detects changes to a net list field.</summary>
-    /// <typeparam name="TValue">The list value type.</typeparam>
-    internal class NetListWatcher<TValue> : BaseDisposableWatcher, ICollectionWatcher<TValue>
-        where TValue : class, INetObject<INetSerializable>
+    /// <summary>A watcher which detects changes to an item inventory.</summary>
+    internal class InventoryWatcher : BaseDisposableWatcher, ICollectionWatcher<Item>
     {
         /*********
         ** Fields
         *********/
-        /// <summary>The field being watched.</summary>
-        private readonly NetList<TValue, NetRef<TValue>> Field;
+        /// <summary>The inventory being watched.</summary>
+        private readonly Inventory Inventory;
 
         /// <summary>The pairs added since the last reset.</summary>
-        private readonly ISet<TValue> AddedImpl = new HashSet<TValue>(new ObjectReferenceComparer<TValue>());
+        private readonly ISet<Item> AddedImpl = new HashSet<Item>(new ObjectReferenceComparer<Item>());
 
         /// <summary>The pairs removed since the last reset.</summary>
-        private readonly ISet<TValue> RemovedImpl = new HashSet<TValue>(new ObjectReferenceComparer<TValue>());
+        private readonly ISet<Item> RemovedImpl = new HashSet<Item>(new ObjectReferenceComparer<Item>());
 
 
         /*********
@@ -32,10 +31,10 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
         public bool IsChanged => this.AddedImpl.Count > 0 || this.RemovedImpl.Count > 0;
 
         /// <inheritdoc />
-        public IEnumerable<TValue> Added => this.AddedImpl;
+        public IEnumerable<Item> Added => this.AddedImpl;
 
         /// <inheritdoc />
-        public IEnumerable<TValue> Removed => this.RemovedImpl;
+        public IEnumerable<Item> Removed => this.RemovedImpl;
 
 
         /*********
@@ -43,13 +42,14 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
         *********/
         /// <summary>Construct an instance.</summary>
         /// <param name="name">A name which identifies what the watcher is watching, used for troubleshooting.</param>
-        /// <param name="field">The field to watch.</param>
-        public NetListWatcher(string name, NetList<TValue, NetRef<TValue>> field)
+        /// <param name="inventory">The inventory to watch.</param>
+        public InventoryWatcher(string name, Inventory inventory)
         {
             this.Name = name;
-            this.Field = field;
-            field.OnElementChanged += this.OnElementChanged;
-            field.OnArrayReplaced += this.OnArrayReplaced;
+            this.Inventory = inventory;
+
+            inventory.OnSlotChanged += this.OnSlotChanged;
+            inventory.OnInventoryReplaced += this.OnInventoryReplaced;
         }
 
         /// <inheritdoc />
@@ -70,8 +70,8 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
         {
             if (!this.IsDisposed)
             {
-                this.Field.OnElementChanged -= this.OnElementChanged;
-                this.Field.OnArrayReplaced -= this.OnArrayReplaced;
+                this.Inventory.OnSlotChanged -= this.OnSlotChanged;
+                this.Inventory.OnInventoryReplaced -= this.OnInventoryReplaced;
             }
 
             base.Dispose();
@@ -82,20 +82,20 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
         ** Private methods
         *********/
         /// <summary>A callback invoked when the value list is replaced.</summary>
-        /// <param name="list">The net field whose values changed.</param>
+        /// <param name="inventory">The net field whose values changed.</param>
         /// <param name="oldValues">The previous list of values.</param>
         /// <param name="newValues">The new list of values.</param>
-        private void OnArrayReplaced(NetList<TValue, NetRef<TValue>> list, IList<TValue> oldValues, IList<TValue> newValues)
+        private void OnInventoryReplaced(Inventory inventory, IList<Item> oldValues, IList<Item> newValues)
         {
-            ISet<TValue> oldSet = new HashSet<TValue>(oldValues, new ObjectReferenceComparer<TValue>());
-            ISet<TValue> changed = new HashSet<TValue>(newValues, new ObjectReferenceComparer<TValue>());
+            ISet<Item> oldSet = new HashSet<Item>(oldValues, new ObjectReferenceComparer<Item>());
+            ISet<Item> changed = new HashSet<Item>(newValues, new ObjectReferenceComparer<Item>());
 
-            foreach (TValue value in oldSet)
+            foreach (Item value in oldSet)
             {
                 if (!changed.Contains(value))
                     this.Remove(value);
             }
-            foreach (TValue value in changed)
+            foreach (Item value in changed)
             {
                 if (!oldSet.Contains(value))
                     this.Add(value);
@@ -103,11 +103,11 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
         }
 
         /// <summary>A callback invoked when an entry is replaced.</summary>
-        /// <param name="list">The net field whose values changed.</param>
+        /// <param name="inventory">The inventory whose values changed.</param>
         /// <param name="index">The list index which changed.</param>
         /// <param name="oldValue">The previous value.</param>
         /// <param name="newValue">The new value.</param>
-        private void OnElementChanged(NetList<TValue, NetRef<TValue>> list, int index, TValue? oldValue, TValue? newValue)
+        private void OnSlotChanged(Inventory inventory, int index, Item? oldValue, Item? newValue)
         {
             this.Remove(oldValue);
             this.Add(newValue);
@@ -115,7 +115,7 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
 
         /// <summary>Track an added item.</summary>
         /// <param name="value">The value that was added.</param>
-        private void Add(TValue? value)
+        private void Add(Item? value)
         {
             if (value == null)
                 return;
@@ -131,7 +131,7 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
 
         /// <summary>Track a removed item.</summary>
         /// <param name="value">The value that was removed.</param>
-        private void Remove(TValue? value)
+        private void Remove(Item? value)
         {
             if (value == null)
                 return;

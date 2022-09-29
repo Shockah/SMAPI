@@ -44,9 +44,9 @@ namespace StardewModdingAPI.Framework.StateTracking
         public ChestTracker(string name, Chest chest)
         {
             this.Chest = chest;
-            this.InventoryWatcher = WatcherFactory.ForNetList($"{name}.{nameof(chest.items)}", chest.items);
+            this.InventoryWatcher = WatcherFactory.ForInventory($"{name}.{nameof(chest.Items)}", chest.Items);
 
-            this.StackSizes = this.Chest.items
+            this.StackSizes = this.Chest.Items
                 .Where(n => n != null)
                 .Distinct()
                 .ToDictionary(n => n, n => n.Stack);

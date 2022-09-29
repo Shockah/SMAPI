@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Netcode;
 using StardewModdingAPI.Framework.StateTracking.Comparers;
+using StardewValley;
+using StardewValley.Inventories;
 
 namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
 {
@@ -82,6 +84,14 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
             return ImmutableCollectionWatcher<T>.Instance;
         }
 
+        /// <summary>Get a watcher for an item inventory.</summary>
+        /// <param name="name">A name which identifies what the watcher is watching, used for troubleshooting.</param>
+        /// <param name="inventory">The item inventory.</param>
+        public static ICollectionWatcher<Item> ForInventory(string name, Inventory inventory)
+        {
+            return new InventoryWatcher(name, inventory);
+        }
+
         /// <summary>Get a watcher for a net collection.</summary>
         /// <typeparam name="T">The value type.</typeparam>
         /// <param name="name">A name which identifies what the watcher is watching, used for troubleshooting.</param>
@@ -90,16 +100,6 @@ namespace StardewModdingAPI.Framework.StateTracking.FieldWatchers
             where T : class, INetObject<INetSerializable>
         {
             return new NetCollectionWatcher<T>(name, collection);
-        }
-
-        /// <summary>Get a watcher for a net list.</summary>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <param name="name">A name which identifies what the watcher is watching, used for troubleshooting.</param>
-        /// <param name="collection">The net list.</param>
-        public static ICollectionWatcher<T> ForNetList<T>(string name, NetList<T, NetRef<T>> collection)
-            where T : class, INetObject<INetSerializable>
-        {
-            return new NetListWatcher<T>(name, collection);
         }
 
         /// <summary>Get a watcher for a net dictionary.</summary>
