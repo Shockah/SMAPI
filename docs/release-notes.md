@@ -1,18 +1,17 @@
 ← [README](README.md)
 
 # Release notes
-<!--
-## 4.0.0
-* The installer no longer supports updating from SMAPI 2.11.3 or earlier (released in 2019).  
-  _If needed, you can update to SMAPI 3.16.0 first and then install the latest version._
--->
-
 ## Upcoming release for Stardew Valley 1.6
 * For players:
   * Updated for Stardew Valley 1.6.
+  * Improved performance.
+  * Removed support for updating from SMAPI 2.11.3 or earlier (released in 2019).  
+    _If needed, you can update to SMAPI 3.18.0 first and then install the latest version._
 
 * For mod authors:
   * Updated to .NET 6.
+  * Removed all deprecated APIs.
+  * SMAPI no longer intercepts output written to the console. Mods which directly access `Console` will be listed under mod warnings.
 
 ## Upcoming release
 * For players:

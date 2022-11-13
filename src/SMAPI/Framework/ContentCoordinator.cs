@@ -12,9 +12,6 @@ using StardewModdingAPI.Framework.Content;
 using StardewModdingAPI.Framework.ContentManagers;
 using StardewModdingAPI.Framework.Reflection;
 using StardewModdingAPI.Framework.Utilities;
-#if SMAPI_DEPRECATED
-using StardewModdingAPI.Internal;
-#endif
 using StardewModdingAPI.Metadata;
 using StardewModdingAPI.Toolkit.Serialization;
 using StardewModdingAPI.Toolkit.Utilities.PathLookups;
@@ -83,16 +80,6 @@ namespace StardewModdingAPI.Framework
         /// <summary>The cached asset load/edit operations to apply, indexed by asset name.</summary>
         private readonly TickCacheDictionary<IAssetName, AssetOperationGroup?> AssetOperationsByKey = new();
 
-#if SMAPI_DEPRECATED
-        /// <summary>A cache of asset operation groups created for legacy <see cref="IAssetLoader"/> implementations.</summary>
-        [Obsolete("This only exists to support legacy code and will be removed in SMAPI 4.0.0.")]
-        private readonly Dictionary<IAssetLoader, Dictionary<Type, AssetLoadOperation>> LegacyLoaderCache = new(ReferenceEqualityComparer.Instance);
-
-        /// <summary>A cache of asset operation groups created for legacy <see cref="IAssetEditor"/> implementations.</summary>
-        [Obsolete("This only exists to support legacy code and will be removed in SMAPI 4.0.0.")]
-        private readonly Dictionary<IAssetEditor, Dictionary<Type, AssetEditOperation>> LegacyEditorCache = new(ReferenceEqualityComparer.Instance);
-#endif
-
 
         /*********
         ** Accessors
@@ -102,16 +89,6 @@ namespace StardewModdingAPI.Framework
 
         /// <summary>The current language as a constant.</summary>
         public LocalizedContentManager.LanguageCode Language => this.MainContentManager.Language;
-
-#if SMAPI_DEPRECATED
-        /// <summary>Interceptors which provide the initial versions of matching assets.</summary>
-        [Obsolete("This only exists to support legacy code and will be removed in SMAPI 4.0.0.")]
-        public IList<ModLinked<IAssetLoader>> Loaders { get; } = new List<ModLinked<IAssetLoader>>();
-
-        /// <summary>Interceptors which edit matching assets after they're loaded.</summary>
-        [Obsolete("This only exists to support legacy code and will be removed in SMAPI 4.0.0.")]
-        public IList<ModLinked<IAssetEditor>> Editors { get; } = new List<ModLinked<IAssetEditor>>();
-#endif
 
         /// <summary>The absolute path to the <see cref="ContentManager.RootDirectory"/>.</summary>
         public string FullRootDirectory { get; }
@@ -267,9 +244,9 @@ namespace StardewModdingAPI.Framework
         {
             // The game clears LocalizedContentManager.localizedAssetNames after returning to the title screen. That
             // causes an inconsistency in the SMAPI asset cache, which leads to an edge case where assets already
-            // provided by mods via IAssetLoader when playing in non-English are ignored.
+            // provided by mods via a load operation when playing in non-English are ignored.
             //
-            // For example, let's say a mod provides the 'Data\mail' asset through IAssetLoader when playing in
+            // For example, let's say a mod provides the 'Data\mail' asset via a load operation when playing in
             // Portuguese. Here's the normal load process after it's loaded:
             //   1. The game requests Data\mail.
             //   2. SMAPI sees that it's already cached, and calls LoadRaw to bypass asset interception.
@@ -499,25 +476,13 @@ namespace StardewModdingAPI.Framework
             return invalidatedAssets.Keys;
         }
 
-#if SMAPI_DEPRECATED
-        /// <summary>Get the asset load and edit operations to apply to a given asset if it's (re)loaded now.</summary>
-        /// <typeparam name="T">The asset type.</typeparam>
-        /// <param name="info">The asset info to load or edit.</param>
-        public AssetOperationGroup? GetAssetOperations<T>(IAssetInfo info)
-            where T : notnull
-#else
         /// <summary>Get the asset load and edit operations to apply to a given asset if it's (re)loaded now.</summary>
         /// <param name="info">The asset info to load or edit.</param>
         public AssetOperationGroup? GetAssetOperations(IAssetInfo info)
-#endif
         {
             return this.AssetOperationsByKey.GetOrSet(
                 info.Name,
-#if SMAPI_DEPRECATED
-                () => this.GetAssetOperationsWithoutCache<T>(info)
-#else
                 () => this.RequestAssetOperations(info)
-#endif
             );
         }
 
@@ -639,195 +604,5 @@ namespace StardewModdingAPI.Framework
 
             return map;
         }
-
-#if SMAPI_DEPRECATED
-        /// <summary>Get the asset load and edit operations to apply to a given asset if it's (re)loaded now, ignoring the <see cref="AssetOperationsByKey"/> cache.</summary>
-        /// <typeparam name="T">The asset type.</typeparam>
-        /// <param name="info">The asset info to load or edit.</param>
-        private AssetOperationGroup? GetAssetOperationsWithoutCache<T>(IAssetInfo info)
-            where T : notnull
-        {
-            // new content API
-            AssetOperationGroup? group = this.RequestAssetOperations(info);
-
-            // legacy load operations
-            if (this.Editors.Count > 0 || this.Loaders.Count > 0)
-            {
-                IAssetInfo legacyInfo = this.GetLegacyAssetInfo(info);
-
-                foreach (ModLinked<IAssetLoader> loader in this.Loaders)
-                {
-                    // check if loader applies
-                    Context.HeuristicModsRunningCode.Push(loader.Mod);
-                    try
-                    {
-                        if (!loader.Data.CanLoad<T>(legacyInfo))
-                            continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        loader.Mod.LogAsMod($"Mod failed when checking whether it could load asset '{legacyInfo.Name}', and will be ignored. Error details:\n{ex.GetLogSummary()}", LogLevel.Error);
-                        continue;
-                    }
-                    finally
-                    {
-                        Context.HeuristicModsRunningCode.TryPop(out _);
-                    }
-
-                    // add operation
-                    group ??= new AssetOperationGroup(new List<AssetLoadOperation>(), new List<AssetEditOperation>());
-                    group.LoadOperations.Add(
-                        this.GetOrCreateLegacyOperation(
-                            cache: this.LegacyLoaderCache,
-                            editor: loader.Data,
-                            dataType: info.DataType,
-                            create: () => new AssetLoadOperation(
-                                Mod: loader.Mod,
-                                OnBehalfOf: null,
-                                Priority: AssetLoadPriority.Exclusive,
-                                GetData: assetInfo => loader.Data.Load<T>(this.GetLegacyAssetInfo(assetInfo))
-                            )
-                        )
-                    );
-                }
-
-                // legacy edit operations
-                foreach (var editor in this.Editors)
-                {
-                    // check if editor applies
-                    Context.HeuristicModsRunningCode.Push(editor.Mod);
-                    try
-                    {
-                        if (!editor.Data.CanEdit<T>(legacyInfo))
-                            continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        editor.Mod.LogAsMod($"Mod crashed when checking whether it could edit asset '{legacyInfo.Name}', and will be ignored. Error details:\n{ex.GetLogSummary()}", LogLevel.Error);
-                        continue;
-                    }
-                    finally
-                    {
-                        Context.HeuristicModsRunningCode.TryPop(out _);
-                    }
-
-                    // HACK
-                    //
-                    // If two editors have the same priority, they're applied in registration order (so
-                    // whichever was registered first is applied first). Mods often depend on this
-                    // behavior, like Json Assets registering its interceptors before Content Patcher.
-                    //
-                    // Unfortunately the old & new content APIs have separate lists, so new-API
-                    // interceptors always ran before old-API interceptors with the same priority,
-                    // regardless of the registration order *between* APIs. Since the new API works in
-                    // a fundamentally different way (i.e. loads/edits are defined on asset request
-                    // instead of by registering a global 'editor' or 'loader' class), there's no way
-                    // to track registration order between them.
-                    //
-                    // Until we drop the old content API in SMAPI 4.0.0, this sets the priority for
-                    // specific legacy editors to maintain compatibility.
-                    AssetEditPriority priority = editor.Data.GetType().FullName switch
-                    {
-                        "JsonAssets.Framework.ContentInjector1" => AssetEditPriority.Default - 1, // must be applied before Content Patcher
-                        _ => AssetEditPriority.Default
-                    };
-
-                    // add operation
-                    group ??= new AssetOperationGroup(new List<AssetLoadOperation>(), new List<AssetEditOperation>());
-                    group.EditOperations.Add(
-                        this.GetOrCreateLegacyOperation(
-                            cache: this.LegacyEditorCache,
-                            editor: editor.Data,
-                            dataType: info.DataType,
-                            create: () => new AssetEditOperation(
-                                Mod: editor.Mod,
-                                OnBehalfOf: null,
-                                Priority: priority,
-                                ApplyEdit: assetData => editor.Data.Edit<T>(this.GetLegacyAssetData(assetData))
-                            )
-                        )
-                    );
-                }
-            }
-
-            return group;
-        }
-
-        /// <summary>Get a cached asset operation group for a legacy <see cref="IAssetLoader"/> or <see cref="IAssetEditor"/> instance, creating it if needed.</summary>
-        /// <typeparam name="TInterceptor">The editor type (one of <see cref="IAssetLoader"/> or <see cref="IAssetEditor"/>).</typeparam>
-        /// <typeparam name="TOperation">The operation model type.</typeparam>
-        /// <param name="cache">The cached operation groups for the interceptor type.</param>
-        /// <param name="editor">The legacy asset interceptor.</param>
-        /// <param name="dataType">The asset data type.</param>
-        /// <param name="create">Create the asset operation group if it's not cached yet.</param>
-        private TOperation GetOrCreateLegacyOperation<TInterceptor, TOperation>(Dictionary<TInterceptor, Dictionary<Type, TOperation>> cache, TInterceptor editor, Type dataType, Func<TOperation> create)
-            where TInterceptor : class
-        {
-            if (!cache.TryGetValue(editor, out Dictionary<Type, TOperation>? cacheByType))
-                cache[editor] = cacheByType = new Dictionary<Type, TOperation>();
-
-            if (!cacheByType.TryGetValue(dataType, out TOperation? operation))
-                cacheByType[dataType] = operation = create();
-
-            return operation;
-        }
-
-        /// <summary>Get an asset info compatible with legacy <see cref="IAssetLoader"/> and <see cref="IAssetEditor"/> instances, which always expect the base name.</summary>
-        /// <param name="asset">The asset info.</param>
-        private IAssetInfo GetLegacyAssetInfo(IAssetInfo asset)
-        {
-            return new AssetInfo(
-                locale: this.GetLegacyLocale(asset),
-                assetName: this.GetLegacyAssetName(asset.Name),
-                type: asset.DataType,
-                getNormalizedPath: this.MainContentManager.AssertAndNormalizeAssetName
-            );
-        }
-
-        /// <summary>Get an asset data compatible with legacy <see cref="IAssetLoader"/> and <see cref="IAssetEditor"/> instances, which always expect the base name.</summary>
-        /// <param name="asset">The asset data.</param>
-        private IAssetData GetLegacyAssetData(IAssetData asset)
-        {
-            return new AssetDataForObject(
-                locale: this.GetLegacyLocale(asset),
-                assetName: this.GetLegacyAssetName(asset.Name),
-                data: asset.Data,
-                getNormalizedPath: this.MainContentManager.AssertAndNormalizeAssetName,
-                reflection: this.Reflection,
-                onDataReplaced: asset.ReplaceWith
-            );
-        }
-
-        /// <summary>Get the <see cref="IAssetInfo.Locale"/> value compatible with legacy <see cref="IAssetLoader"/> and <see cref="IAssetEditor"/> instances, which expect the locale to default to the current game locale or an empty string.</summary>
-        /// <param name="asset">The non-legacy asset info to map.</param>
-        private string GetLegacyLocale(IAssetInfo asset)
-        {
-            return asset.Locale ?? this.GetLocale();
-        }
-
-        /// <summary>Get an asset name compatible with legacy <see cref="IAssetLoader"/> and <see cref="IAssetEditor"/> instances, which always expect the base name.</summary>
-        /// <param name="asset">The asset name to map.</param>
-        /// <returns>Returns the legacy asset name if needed, or the <paramref name="asset"/> if no change is needed.</returns>
-        private IAssetName GetLegacyAssetName(IAssetName asset)
-        {
-            // strip _international suffix
-            const string internationalSuffix = "_international";
-            if (asset.Name.EndsWith(internationalSuffix))
-            {
-                return new AssetName(
-                    baseName: asset.Name[..^internationalSuffix.Length],
-                    localeCode: null,
-                    languageCode: null
-                );
-            }
-
-            // else strip locale
-            if (asset.LocaleCode != null)
-                return new AssetName(asset.BaseName, null, null);
-
-            // else no change needed
-            return asset;
-        }
-#endif
     }
 }

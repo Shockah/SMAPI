@@ -8,7 +8,6 @@ using System.Reflection;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Framework.Content;
-using StardewModdingAPI.Framework.Deprecations;
 using StardewModdingAPI.Framework.Exceptions;
 using StardewModdingAPI.Framework.Reflection;
 using StardewModdingAPI.Framework.Utilities;
@@ -25,7 +24,7 @@ namespace StardewModdingAPI.Framework.ContentManagers
         /*********
         ** Fields
         *********/
-        /// <summary>The assets currently being intercepted by <see cref="IAssetLoader"/> instances. This is used to prevent infinite loops when a loader loads a new asset.</summary>
+        /// <summary>The assets currently being intercepted by <see cref="AssetLoadOperation"/> instances. This is used to prevent infinite loops when a loader loads a new asset.</summary>
         private readonly ContextHash<string> AssetsBeingLoaded = new();
 
         /// <summary>Whether the next load is the first for any game content manager.</summary>
@@ -76,11 +75,7 @@ namespace StardewModdingAPI.Framework.ContentManagers
             // custom asset from a loader
             string locale = this.GetLocale();
             IAssetInfo info = new AssetInfo(locale, assetName, typeof(T), this.AssertAndNormalizeAssetName);
-            AssetOperationGroup? operations = this.Coordinator.GetAssetOperations
-#if SMAPI_DEPRECATED
-                <T>
-#endif
-                (info);
+            AssetOperationGroup? operations = this.Coordinator.GetAssetOperations(info);
             if (operations?.LoadOperations.Count > 0)
             {
                 if (!this.AssertMaxOneRequiredLoader(info, operations.LoadOperations, out string? error))
@@ -133,11 +128,7 @@ namespace StardewModdingAPI.Framework.ContentManagers
                 data = this.AssetsBeingLoaded.Track(assetName.Name, () =>
                 {
                     IAssetInfo info = new AssetInfo(assetName.LocaleCode, assetName, typeof(T), this.AssertAndNormalizeAssetName);
-                    AssetOperationGroup? operations = this.Coordinator.GetAssetOperations
-#if SMAPI_DEPRECATED
-                        <T>
-#endif
-                        (info);
+                    AssetOperationGroup? operations = this.Coordinator.GetAssetOperations(info);
                     IAssetData asset =
                         this.ApplyLoader<T>(info, operations?.LoadOperations)
                         ?? new AssetDataForObject(info, this.RawLoad<T>(assetName, useCache), this.AssertAndNormalizeAssetName, this.Reflection);
@@ -302,11 +293,7 @@ namespace StardewModdingAPI.Framework.ContentManagers
                 ? $"Multiple mods want to provide the '{info.Name}' asset: {string.Join(", ", loaderNames)}"
                 : $"The '{loaderNames[0]}' mod wants to provide the '{info.Name}' asset multiple times";
 
-            error = $"{errorPhrase}. An asset can't be loaded multiple times, so SMAPI will use the default asset instead. Uninstall one of the mods to fix this. (Message for modders: you should avoid {nameof(AssetLoadPriority)}.{nameof(AssetLoadPriority.Exclusive)}"
-#if SMAPI_DEPRECATED
-                + " and {nameof(IAssetLoader)}"
-#endif
-                + " if possible to avoid conflicts.)";
+            error = $"{errorPhrase}. An asset can't be loaded multiple times, so SMAPI will use the default asset instead. Uninstall one of the mods to fix this. (Message for modders: you should avoid {nameof(AssetLoadPriority)}.{nameof(AssetLoadPriority.Exclusive)} if possible to avoid conflicts.)";
             return false;
         }
 
@@ -361,25 +348,8 @@ namespace StardewModdingAPI.Framework.ContentManagers
                     // handle mismatch
                     if (loadedMap.TileSheets.Count <= vanillaSheet.Index || loadedMap.TileSheets[vanillaSheet.Index].Id != vanillaSheet.Id)
                     {
-#if SMAPI_DEPRECATED
-                        // only show warning if not farm map
-                        // This is temporary: mods shouldn't do this for any vanilla map, but these are the ones we know will crash. Showing a warning for others instead gives modders time to update their mods, while still simplifying troubleshooting.
-                        bool isFarmMap = info.Name.IsEquivalentTo("Maps/Farm") || info.Name.IsEquivalentTo("Maps/Farm_Combat") || info.Name.IsEquivalentTo("Maps/Farm_Fishing") || info.Name.IsEquivalentTo("Maps/Farm_Foraging") || info.Name.IsEquivalentTo("Maps/Farm_FourCorners") || info.Name.IsEquivalentTo("Maps/Farm_Island") || info.Name.IsEquivalentTo("Maps/Farm_Mining");
-
-                        string reason = $"{this.GetOnBehalfOfLabel(loader.OnBehalfOf, parenthetical: false) ?? "mod"} reordered the original tilesheets, which {(isFarmMap ? "would cause a crash" : "often causes crashes")}.\nTechnical details for mod author: Expected order: {string.Join(", ", vanillaTilesheetRefs.Select(p => p.Id))}. See https://stardewvalleywiki.com/Modding:Maps#Tilesheet_order for help.";
-
-                        SCore.DeprecationManager.PlaceholderWarn("3.8.2", DeprecationLevel.PendingRemoval);
-                        if (isFarmMap)
-                        {
-                            mod.LogAsMod($"SMAPI blocked a '{info.Name}' map load: {reason}", LogLevel.Error);
-                            return false;
-                        }
-
-                        mod.LogAsMod($"SMAPI found an issue with a '{info.Name}' map load: {reason}", LogLevel.Warn);
-#else
                         mod.LogAsMod($"SMAPI found an issue with a '{info.Name}' map load: {this.GetOnBehalfOfLabel(loader.OnBehalfOf, parenthetical: false) ?? "mod"} reordered the original tilesheets, which often causes crashes.\nTechnical details for mod author: Expected order: {string.Join(", ", vanillaTilesheetRefs.Select(p => p.Id))}. See https://stardewvalleywiki.com/Modding:Maps#Tilesheet_order for help.", LogLevel.Error);
                         return false;
-#endif
                     }
                 }
             }

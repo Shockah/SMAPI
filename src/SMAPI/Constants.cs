@@ -6,9 +6,6 @@ using System.Reflection;
 using Mono.Cecil;
 using StardewModdingAPI.Enums;
 using StardewModdingAPI.Framework;
-#if SMAPI_DEPRECATED
-using StardewModdingAPI.Framework.Deprecations;
-#endif
 using StardewModdingAPI.Framework.ModLoading;
 using StardewModdingAPI.Toolkit.Framework;
 using StardewModdingAPI.Toolkit.Utilities;
@@ -78,25 +75,6 @@ namespace StardewModdingAPI
 
         /// <summary>The game framework running the game.</summary>
         public static GameFramework GameFramework { get; } = EarlyConstants.GameFramework;
-
-#if SMAPI_DEPRECATED
-        /// <summary>The path to the game folder.</summary>
-        [Obsolete($"Use {nameof(Constants)}.{nameof(GamePath)} instead. This property will be removed in SMAPI 4.0.0.")]
-        public static string ExecutionPath
-        {
-            get
-            {
-                SCore.DeprecationManager.Warn(
-                    source: null,
-                    nounPhrase: $"{nameof(Constants)}.{nameof(Constants.ExecutionPath)}",
-                    version: "3.14.0",
-                    severity: DeprecationLevel.PendingRemoval
-                );
-
-                return Constants.GamePath;
-            }
-        }
-#endif
 
         /// <summary>The path to the game folder.</summary>
         public static string GamePath { get; } = EarlyConstants.GamePath;

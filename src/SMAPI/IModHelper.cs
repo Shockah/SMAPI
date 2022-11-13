@@ -1,6 +1,3 @@
-#if SMAPI_DEPRECATED
-using System;
-#endif
 using StardewModdingAPI.Events;
 
 namespace StardewModdingAPI
@@ -26,12 +23,6 @@ namespace StardewModdingAPI
         /// <summary>An API for loading content assets from your mod's files.</summary>
         /// <remarks>This API is intended for reading content assets from the mod files (like game data, images, etc); see also <see cref="Data"/> which is intended for persisting internal mod data.</remarks>
         IModContentHelper ModContent { get; }
-
-#if SMAPI_DEPRECATED
-        /// <summary>An API for loading content assets.</summary>
-        [Obsolete($"Use {nameof(IGameContentHelper)} or {nameof(IModContentHelper)} instead.")]
-        IContentHelper Content { get; }
-#endif
 
         /// <summary>An API for managing content packs.</summary>
         IContentPackHelper ContentPacks { get; }

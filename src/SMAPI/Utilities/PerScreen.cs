@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-#if SMAPI_DEPRECATED
-using StardewModdingAPI.Framework;
-using StardewModdingAPI.Framework.Deprecations;
-#endif
 
 namespace StardewModdingAPI.Utilities
 {
@@ -51,22 +47,7 @@ namespace StardewModdingAPI.Utilities
         /// <param name="createNewState">Create the initial state for a screen.</param>
         public PerScreen(Func<T> createNewState)
         {
-            if (createNewState is null)
-            {
-#if SMAPI_DEPRECATED
-                createNewState = (() => default!);
-                SCore.DeprecationManager.Warn(
-                    null,
-                    $"calling the {nameof(PerScreen<T>)} constructor with null",
-                    "3.14.0",
-                    DeprecationLevel.PendingRemoval
-                );
-#else
-                throw new ArgumentNullException(nameof(createNewState));
-#endif
-            }
-
-            this.CreateNewState = createNewState;
+            this.CreateNewState = createNewState ?? throw new ArgumentNullException(nameof(createNewState));
         }
 
         /// <summary>Get all active values by screen ID. This doesn't initialize the value for a screen ID if it's not created yet.</summary>

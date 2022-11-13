@@ -269,11 +269,7 @@ namespace StardewModdingAPI.Framework.Logging
         public void LogIntro(string modsPath, IDictionary<string, object?> customSettings)
         {
             // log platform
-            this.Monitor.Log($"SMAPI {Constants.ApiVersion} "
-#if !SMAPI_DEPRECATED
-                + "(strict mode) "
-#endif
-                + $"with Stardew Valley {Constants.GameVersion} (build {Constants.GetBuildVersionLabel()}) on {EnvironmentUtility.GetFriendlyPlatformName(Constants.Platform)}", LogLevel.Info);
+            this.Monitor.Log($"SMAPI {Constants.ApiVersion} with Stardew Valley {Constants.GameVersion} (build {Constants.GetBuildVersionLabel()}) on {EnvironmentUtility.GetFriendlyPlatformName(Constants.Platform)}", LogLevel.Info);
 
             // log basic info
             this.Monitor.Log($"Mods go here: {modsPath}", LogLevel.Info);
@@ -284,10 +280,6 @@ namespace StardewModdingAPI.Framework.Logging
             // log custom settings
             if (customSettings.Any())
                 this.Monitor.Log($"Loaded with custom settings: {string.Join(", ", customSettings.OrderBy(p => p.Key).Select(p => $"{p.Key}: {p.Value}"))}");
-
-#if !SMAPI_DEPRECATED
-            this.Monitor.Log("SMAPI is running in 'strict mode', which removes all deprecated APIs. This can significantly improve performance, but some mods may not work. You can reinstall SMAPI to disable it if you run into problems.", LogLevel.Info);
-#endif
         }
 
         /// <summary>Log details for settings that don't match the default.</summary>

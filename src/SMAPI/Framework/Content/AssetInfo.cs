@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
-#if SMAPI_DEPRECATED
-using StardewModdingAPI.Framework.Deprecations;
-#endif
 
 namespace StardewModdingAPI.Framework.Content
 {
@@ -34,30 +31,6 @@ namespace StardewModdingAPI.Framework.Content
         /// <inheritdoc />
         public Type DataType { get; }
 
-#if SMAPI_DEPRECATED
-        /// <inheritdoc />
-        [Obsolete($"Use {nameof(AssetInfo.Name)} or {nameof(AssetInfo.NameWithoutLocale)} instead. This property will be removed in SMAPI 4.0.0.")]
-        public string AssetName
-        {
-            get
-            {
-                SCore.DeprecationManager.Warn(
-                    source: null,
-                    nounPhrase: $"{nameof(IAssetInfo)}.{nameof(IAssetInfo.AssetName)}",
-                    version: "3.14.0",
-                    severity: DeprecationLevel.PendingRemoval,
-                    unlessStackIncludes: new[]
-                    {
-                        $"{typeof(AssetInterceptorChange).FullName}.{nameof(AssetInterceptorChange.CanIntercept)}",
-                        $"{typeof(ContentCoordinator).FullName}.{nameof(ContentCoordinator.GetAssetOperations)}"
-                    }
-                );
-
-                return this.NameWithoutLocale.Name;
-            }
-        }
-#endif
-
 
         /*********
         ** Public methods
@@ -74,28 +47,6 @@ namespace StardewModdingAPI.Framework.Content
             this.DataType = type;
             this.GetNormalizedPath = getNormalizedPath;
         }
-
-#if SMAPI_DEPRECATED
-        /// <inheritdoc />
-        [Obsolete($"Use {nameof(Name)}.{nameof(IAssetName.IsEquivalentTo)} or {nameof(AssetInfo.NameWithoutLocale)}.{nameof(IAssetName.IsEquivalentTo)} instead. This method will be removed in SMAPI 4.0.0.")]
-        public bool AssetNameEquals(string path)
-        {
-            SCore.DeprecationManager.Warn(
-                source: null,
-                nounPhrase: $"{nameof(IAssetInfo)}.{nameof(IAssetInfo.AssetNameEquals)}",
-                version: "3.14.0",
-                severity: DeprecationLevel.PendingRemoval,
-                unlessStackIncludes: new[]
-                {
-                    $"{typeof(AssetInterceptorChange).FullName}.{nameof(AssetInterceptorChange.CanIntercept)}",
-                    $"{typeof(ContentCoordinator).FullName}.{nameof(ContentCoordinator.GetAssetOperations)}"
-                }
-            );
-
-
-            return this.NameWithoutLocale.IsEquivalentTo(path);
-        }
-#endif
 
 
         /*********

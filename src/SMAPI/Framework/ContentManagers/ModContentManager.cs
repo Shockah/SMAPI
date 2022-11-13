@@ -47,15 +47,6 @@ namespace StardewModdingAPI.Framework.ContentManagers
 
 
         /*********
-        ** Accessors
-        *********/
-#if SMAPI_DEPRECATED
-        /// <summary>Whether to enable legacy compatibility mode for PyTK scale-up textures.</summary>
-        internal static bool EnablePyTkLegacyMode;
-#endif
-
-
-        /*********
         ** Public methods
         *********/
         /// <summary>Construct an instance.</summary>
@@ -201,16 +192,6 @@ namespace StardewModdingAPI.Framework.ContentManagers
             this.AssertValidType<T>(assetName, file, typeof(Texture2D), typeof(IRawTextureData));
             bool returnRawData = typeof(T).IsAssignableTo(typeof(IRawTextureData));
 
-#if SMAPI_DEPRECATED
-            if (!returnRawData && this.ShouldDisableIntermediateRawDataLoad<T>(assetName, file))
-            {
-                using FileStream stream = File.OpenRead(file.FullName);
-                Texture2D texture = Texture2D.FromStream(Game1.graphics.GraphicsDevice, stream).SetName(assetName);
-                this.PremultiplyTransparency(texture);
-                return (T)(object)texture;
-            }
-#endif
-
             IRawTextureData raw = this.LoadRawImageData(file, returnRawData);
 
             if (returnRawData)
@@ -222,28 +203,6 @@ namespace StardewModdingAPI.Framework.ContentManagers
                 return (T)(object)texture;
             }
         }
-
-#if SMAPI_DEPRECATED
-        /// <summary>Get whether to disable loading an image as <see cref="IRawTextureData"/> before building a <see cref="Texture2D"/> instance. This isn't called if the mod requested <see cref="IRawTextureData"/> directly.</summary>
-        /// <typeparam name="T">The type of asset being loaded.</typeparam>
-        /// <param name="assetName">The asset name relative to the loader root directory.</param>
-        /// <param name="file">The file being loaded.</param>
-        private bool ShouldDisableIntermediateRawDataLoad<T>(IAssetName assetName, FileInfo file)
-        {
-            // disable raw data if PyTK will rescale the image (until it supports raw data)
-            if (ModContentManager.EnablePyTkLegacyMode)
-            {
-                // PyTK intercepts Texture2D file loads to rescale them (e.g. for HD portraits),
-                // but doesn't support IRawTextureData loads yet. We can't just check if the
-                // current file has a '.pytk.json' rescale file though, since PyTK may still
-                // rescale it if the original asset or another edit gets rescaled.
-                this.Monitor.LogOnce("Enabled compatibility mode for PyTK 1.23.* or earlier. This won't cause any issues, but may impact performance. This will no longer be supported in the upcoming SMAPI 4.0.0.", LogLevel.Warn);
-                return true;
-            }
-
-            return false;
-        }
-#endif
 
         /// <summary>Load the raw image data from a file on disk.</summary>
         /// <param name="file">The file whose data to load.</param>
@@ -523,7 +482,7 @@ namespace StardewModdingAPI.Framework.ContentManagers
                 // ignore file-not-found errors
                 // TODO: while it's useful to suppress an asset-not-found error here to avoid
                 // confusion, this is a pretty naive approach. Even if the file doesn't exist,
-                // the file may have been loaded through an IAssetLoader which failed. So even
+                // the file may have been loaded through a load operation which failed. So even
                 // if the content file doesn't exist, that doesn't mean the error here is a
                 // content-not-found error. Unfortunately XNA doesn't provide a good way to
                 // detect the error type.

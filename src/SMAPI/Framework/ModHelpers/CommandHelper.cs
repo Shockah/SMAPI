@@ -1,7 +1,4 @@
 using System;
-#if SMAPI_DEPRECATED
-using StardewModdingAPI.Framework.Deprecations;
-#endif
 
 namespace StardewModdingAPI.Framework.ModHelpers
 {
@@ -33,21 +30,5 @@ namespace StardewModdingAPI.Framework.ModHelpers
             this.CommandManager.Add(this.Mod, name, documentation, callback);
             return this;
         }
-
-#if SMAPI_DEPRECATED
-        /// <inheritdoc />
-        [Obsolete("Use mod-provided APIs to integrate with mods instead. This method will be removed in SMAPI 4.0.0.")]
-        public bool Trigger(string name, string[] arguments)
-        {
-            SCore.DeprecationManager.Warn(
-                source: this.Mod,
-                nounPhrase: $"{nameof(IModHelper)}.{nameof(IModHelper.ConsoleCommands)}.{nameof(ICommandHelper.Trigger)}",
-                version: "3.8.1",
-                severity: DeprecationLevel.PendingRemoval
-            );
-
-            return this.CommandManager.Trigger(name, arguments);
-        }
-#endif
     }
 }

@@ -41,7 +41,7 @@ namespace StardewModdingApi.Installer
         {
             string GetInstallPath(string path) => Path.Combine(installDir.FullName, path);
 
-            // current files
+            // installed files
             yield return GetInstallPath("StardewModdingAPI");          // Linux/macOS only
             yield return GetInstallPath("StardewModdingAPI.deps.json");
             yield return GetInstallPath("StardewModdingAPI.dll");
@@ -54,38 +54,8 @@ namespace StardewModdingApi.Installer
             yield return GetInstallPath("smapi-internal");
             yield return GetInstallPath("steam_appid.txt");
 
-#if SMAPI_DEPRECATED
-            // obsolete
-            yield return GetInstallPath("libgdiplus.dylib");                 // before 3.13 (macOS only)
-            yield return GetInstallPath(Path.Combine("Mods", ".cache"));     // 1.3-1.4
-            yield return GetInstallPath(Path.Combine("Mods", "TrainerMod")); // *–2.0 (renamed to ConsoleCommands)
-            yield return GetInstallPath("Mono.Cecil.Rocks.dll");             // 1.3–1.8
-            yield return GetInstallPath("StardewModdingAPI-settings.json");  // 1.0-1.4
-            yield return GetInstallPath("StardewModdingAPI.AssemblyRewriters.dll"); // 1.3-2.5.5
-            yield return GetInstallPath("0Harmony.dll");                    // moved in 2.8
-            yield return GetInstallPath("0Harmony.pdb");                    // moved in 2.8
-            yield return GetInstallPath("Mono.Cecil.dll");                  // moved in 2.8
-            yield return GetInstallPath("Newtonsoft.Json.dll");             // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.config.json");   // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.crash.marker");  // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.metadata.json"); // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.update.marker"); // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.Toolkit.dll");   // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.Toolkit.pdb");   // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.Toolkit.xml");   // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.Toolkit.CoreInterfaces.dll"); // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.Toolkit.CoreInterfaces.pdb"); // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI.Toolkit.CoreInterfaces.xml"); // moved in 2.8
-            yield return GetInstallPath("StardewModdingAPI-x64.exe");         // before 3.13
-
-            if (modsDir.Exists)
-            {
-                foreach (DirectoryInfo modDir in modsDir.EnumerateDirectories())
-                    yield return Path.Combine(modDir.FullName, ".cache"); // 1.4–1.7
-            }
-#endif
-
-            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StardewValley", "ErrorLogs"); // remove old log files
+            // old log files
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StardewValley", "ErrorLogs");
         }
 
         /// <summary>Handles writing text to the console.</summary>
@@ -516,11 +486,6 @@ namespace StardewModdingApi.Installer
                             .Replace(@"""UseScheme"": ""AutoDetect""", $@"""UseScheme"": ""{scheme}""");
                         File.WriteAllText(paths.ApiConfigPath, text);
                     }
-
-#if SMAPI_DEPRECATED
-                    // remove obsolete appdata mods
-                    this.InteractivelyRemoveAppDataMods(paths.ModsDir, bundledModsDir, allowUserInput);
-#endif
                 }
             }
             Console.WriteLine();
@@ -847,92 +812,6 @@ namespace StardewModdingApi.Installer
                     yield return dir;
             }
         }
-
-#if SMAPI_DEPRECATED
-        /// <summary>Interactively move mods out of the app data directory.</summary>
-        /// <param name="properModsDir">The directory which should contain all mods.</param>
-        /// <param name="packagedModsDir">The installer directory containing packaged mods.</param>
-        /// <param name="allowUserInput">Whether the installer can ask for user input from the terminal.</param>
-        private void InteractivelyRemoveAppDataMods(DirectoryInfo properModsDir, DirectoryInfo packagedModsDir, bool allowUserInput)
-        {
-            // get packaged mods to delete
-            string[] packagedModNames = packagedModsDir.GetDirectories().Select(p => p.Name).ToArray();
-
-            // get path
-            string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "StardewValley");
-            DirectoryInfo modDir = new(Path.Combine(appDataPath, "Mods"));
-
-            // check if migration needed
-            if (!modDir.Exists)
-                return;
-            this.PrintDebug($"Found an obsolete mod path: {modDir.FullName}");
-            this.PrintDebug("   Support for mods here was dropped in SMAPI 1.0 (it was never officially supported).");
-
-            // move mods if no conflicts (else warn)
-            foreach (FileSystemInfo entry in modDir.EnumerateFileSystemInfos().Where(this.ShouldCopy))
-            {
-                // get type
-                bool isDir = entry is DirectoryInfo;
-                if (!isDir && entry is not FileInfo)
-                    continue; // should never happen
-
-                // delete packaged mods (newer version bundled into SMAPI)
-                if (isDir && packagedModNames.Contains(entry.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    this.PrintDebug($"   Deleting {entry.Name} because it's bundled into SMAPI...");
-                    this.InteractivelyDelete(entry.FullName, allowUserInput);
-                    continue;
-                }
-
-                // check paths
-                string newPath = Path.Combine(properModsDir.FullName, entry.Name);
-                if (isDir ? Directory.Exists(newPath) : File.Exists(newPath))
-                {
-                    this.PrintWarning($"   Can't move {entry.Name} because it already exists in your game's mod directory.");
-                    continue;
-                }
-
-                // move into mods
-                this.PrintDebug($"   Moving {entry.Name} into the game's mod directory...");
-                this.Move(entry, newPath);
-            }
-
-            // delete if empty
-            if (modDir.EnumerateFileSystemInfos().Any())
-                this.PrintWarning("   You have files in this folder which couldn't be moved automatically. These will be ignored by SMAPI.");
-            else
-            {
-                this.PrintDebug("   Deleted empty directory.");
-                modDir.Delete(recursive: true);
-            }
-        }
-
-        /// <summary>Move a filesystem entry to a new parent directory.</summary>
-        /// <param name="entry">The filesystem entry to move.</param>
-        /// <param name="newPath">The destination path.</param>
-        /// <remarks>We can't use <see cref="FileInfo.MoveTo(string)"/> or <see cref="DirectoryInfo.MoveTo"/>, because those don't work across partitions.</remarks>
-        private void Move(FileSystemInfo entry, string newPath)
-        {
-            // file
-            if (entry is FileInfo file)
-            {
-                file.CopyTo(newPath);
-                file.Delete();
-            }
-
-            // directory
-            else
-            {
-                Directory.CreateDirectory(newPath);
-
-                DirectoryInfo directory = (DirectoryInfo)entry;
-                foreach (FileSystemInfo child in directory.EnumerateFileSystemInfos().Where(this.ShouldCopy))
-                    this.Move(child, Path.Combine(newPath, child.Name));
-
-                directory.Delete(recursive: true);
-            }
-        }
-#endif
 
         /// <summary>Get whether a file or folder should be copied from the installer files.</summary>
         /// <param name="entry">The file or folder info.</param>
