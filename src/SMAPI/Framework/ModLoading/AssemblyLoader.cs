@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using StardewModdingAPI.Framework.Exceptions;
@@ -94,12 +95,10 @@ namespace StardewModdingAPI.Framework.ModLoading
             // get referenced local assemblies
             AssemblyParseResult[] assemblies;
             {
-                HashSet<string> visitedAssemblyNames = new HashSet<string>( // don't try loading assemblies that are already loaded
-                    from assembly in AppDomain.CurrentDomain.GetAssemblies()
-                    let name = assembly.GetName().Name
-                    where name != null
-                    select name
-                );
+                // don't try loading assemblies that are already loaded
+                HashSet<string> visitedAssemblyNames = AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(a => a.GetName().FullName)
+                    .ToHashSet();
                 assemblies = this.GetReferencedLocalAssemblies(assemblyFile, visitedAssemblyNames, this.AssemblyDefinitionResolver).ToArray();
             }
 
@@ -140,6 +139,7 @@ namespace StardewModdingAPI.Framework.ModLoading
                 }
 
                 // load assembly
+                AssemblyLoadContext context = new(null);
                 if (changed)
                 {
                     if (!oneAssembly)
@@ -149,14 +149,15 @@ namespace StardewModdingAPI.Framework.ModLoading
                     using MemoryStream outAssemblyStream = new();
                     using MemoryStream outSymbolStream = new();
                     assembly.Definition.Write(outAssemblyStream, new WriterParameters { WriteSymbols = true, SymbolStream = outSymbolStream, SymbolWriterProvider = this.SymbolWriterProvider });
-                    byte[] bytes = outAssemblyStream.ToArray();
-                    lastAssembly = Assembly.Load(bytes, outSymbolStream.ToArray());
+                    outAssemblyStream.Position = 0;
+                    outSymbolStream.Position = 0;
+                    lastAssembly = context.LoadFromStream(outAssemblyStream, outSymbolStream);
                 }
                 else
                 {
                     if (!oneAssembly)
                         this.Monitor.Log($"      Loading {assembly.File.Name}...");
-                    lastAssembly = Assembly.UnsafeLoadFrom(assembly.File.FullName);
+                    lastAssembly = context.LoadFromAssemblyPath(assembly.File.FullName);
                 }
 
                 // track loaded assembly for definition resolution
@@ -301,12 +302,12 @@ namespace StardewModdingAPI.Framework.ModLoading
             }
 
             // skip if already visited
-            if (visitedAssemblyNames.Contains(assembly.Name.Name))
+            if (visitedAssemblyNames.Contains(assembly.Name.FullName))
             {
                 yield return new AssemblyParseResult(file, null, AssemblyLoadStatus.AlreadyLoaded);
                 yield break;
             }
-            visitedAssemblyNames.Add(assembly.Name.Name);
+            visitedAssemblyNames.Add(assembly.Name.FullName);
 
             // yield referenced assemblies
             foreach (AssemblyNameReference dependency in assembly.MainModule.AssemblyReferences)
