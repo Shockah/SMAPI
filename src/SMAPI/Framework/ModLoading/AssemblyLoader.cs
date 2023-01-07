@@ -97,9 +97,13 @@ namespace StardewModdingAPI.Framework.ModLoading
             {
                 // don't try loading assemblies that are already loaded
                 HashSet<string> visitedAssemblyNames = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => a.GetName().Name is not null)
+                    .Select(a => a.GetName().Name!)
+                    .ToHashSet();
+                HashSet<string> visitedFullAssemblyNames = AppDomain.CurrentDomain.GetAssemblies()
                     .Select(a => a.GetName().FullName)
                     .ToHashSet();
-                assemblies = this.GetReferencedLocalAssemblies(assemblyFile, visitedAssemblyNames, this.AssemblyDefinitionResolver).ToArray();
+                assemblies = this.GetReferencedLocalAssemblies(assemblyFile, visitedAssemblyNames, visitedFullAssemblyNames, this.AssemblyDefinitionResolver, false).ToArray();
             }
 
             // validate load
@@ -116,7 +120,7 @@ namespace StardewModdingAPI.Framework.ModLoading
             // rewrite & load assemblies in leaf-to-root order
             bool oneAssembly = assemblies.Length == 1;
             Assembly? lastAssembly = null;
-            HashSet<string> loggedMessages = new HashSet<string>();
+            HashSet<string> loggedMessages = new();
             foreach (AssemblyParseResult assembly in assemblies)
             {
                 if (!assembly.HasDefinition)
@@ -255,9 +259,11 @@ namespace StardewModdingAPI.Framework.ModLoading
         /// <summary>Get a list of referenced local assemblies starting from the mod assembly, ordered from leaf to root.</summary>
         /// <param name="file">The assembly file to load.</param>
         /// <param name="visitedAssemblyNames">The assembly names that should be skipped.</param>
+        /// <param name="visitedFullAssemblyNames">The full assembly names that should be skipped.</param>
         /// <param name="assemblyResolver">A resolver which resolves references to known assemblies.</param>
+        /// <param name="onlyExactMatchAlreadyVisited">Whether to only check for an exact full name match when deciding to skip an assembly.</param>
         /// <returns>Returns the rewrite metadata for the preprocessed assembly.</returns>
-        private IEnumerable<AssemblyParseResult> GetReferencedLocalAssemblies(FileInfo file, HashSet<string> visitedAssemblyNames, IAssemblyResolver assemblyResolver)
+        private IEnumerable<AssemblyParseResult> GetReferencedLocalAssemblies(FileInfo file, HashSet<string> visitedAssemblyNames, HashSet<string> visitedFullAssemblyNames, IAssemblyResolver assemblyResolver, bool onlyExactMatchAlreadyVisited)
         {
             // validate
             if (file.Directory == null)
@@ -301,21 +307,26 @@ namespace StardewModdingAPI.Framework.ModLoading
                     this.AssemblyDefinitionResolver.RemoveSearchDirectory(temporarySearchDir);
             }
 
+            // yield referenced assemblies, if provided in the same directory
+            foreach (AssemblyNameReference dependency in assembly.MainModule.AssemblyReferences)
+            {
+                FileInfo dependencyFile = new(Path.Combine(file.Directory.FullName, $"{dependency.Name}.dll"));
+                if (!dependencyFile.Exists)
+                    continue;
+                foreach (AssemblyParseResult result in this.GetReferencedLocalAssemblies(dependencyFile, visitedAssemblyNames, visitedFullAssemblyNames, assemblyResolver, true))
+                    yield return result;
+            }
+
             // skip if already visited
-            if (visitedAssemblyNames.Contains(assembly.Name.FullName))
+            HashSet<string> assemblyNamesToCheckAgainst = onlyExactMatchAlreadyVisited ? visitedFullAssemblyNames : visitedAssemblyNames;
+            string assemblyNameToCheck = onlyExactMatchAlreadyVisited ? assembly.Name.FullName : assembly.Name.Name;
+            if (assemblyNamesToCheckAgainst.Contains(assemblyNameToCheck))
             {
                 yield return new AssemblyParseResult(file, null, AssemblyLoadStatus.AlreadyLoaded);
                 yield break;
             }
-            visitedAssemblyNames.Add(assembly.Name.FullName);
-
-            // yield referenced assemblies
-            foreach (AssemblyNameReference dependency in assembly.MainModule.AssemblyReferences)
-            {
-                FileInfo dependencyFile = new(Path.Combine(file.Directory.FullName, $"{dependency.Name}.dll"));
-                foreach (AssemblyParseResult result in this.GetReferencedLocalAssemblies(dependencyFile, visitedAssemblyNames, assemblyResolver))
-                    yield return result;
-            }
+            visitedAssemblyNames.Add(assembly.Name.Name);
+            visitedFullAssemblyNames.Add(assembly.Name.FullName);
 
             // yield assembly
             yield return new AssemblyParseResult(file, assembly, AssemblyLoadStatus.Okay);
