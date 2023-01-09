@@ -412,8 +412,11 @@ The NuGet package is generated automatically in `StardewModdingAPI.ModBuildConfi
 when you compile it.
 
 ## Release notes
-## Upcoming release
+### 4.1.0
+Released 08 January 2023.
+
 * Added `manifest.json` format validation on build (thanks to tylergibbs2!).
+* Fixed game DLLs not excluded from the release zip when they're referenced explicitly but `BundleExtraAssemblies` isn't set.
 
 ### 4.0.2
 Released 09 October 2022.

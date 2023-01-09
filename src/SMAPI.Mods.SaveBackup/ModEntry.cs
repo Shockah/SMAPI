@@ -1,10 +1,8 @@
 using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using StardewValley;
 
@@ -81,7 +79,7 @@ namespace StardewModdingAPI.Mods.SaveBackup
                 }
 
                 // compress backup if possible
-                if (!this.TryCompress(fallbackDir.FullName, targetFile, out Exception? compressError))
+                if (!this.TryCompressDir(fallbackDir.FullName, targetFile, out Exception? compressError))
                 {
                     this.Monitor.Log(Constants.TargetPlatform != GamePlatform.Android
                         ? $"Backed up to {fallbackDir.FullName}." // expected to fail on Android
@@ -136,19 +134,16 @@ namespace StardewModdingAPI.Mods.SaveBackup
             }
         }
 
-        /// <summary>Create a zip using the best available method.</summary>
-        /// <param name="sourcePath">The file or directory path to zip.</param>
+        /// <summary>Try to create a compressed zip file for a directory.</summary>
+        /// <param name="sourcePath">The directory path to zip.</param>
         /// <param name="destination">The destination file to create.</param>
         /// <param name="error">The error which occurred trying to compress, if applicable. This is <see cref="NotSupportedException"/> if compression isn't supported on this platform.</param>
         /// <returns>Returns whether compression succeeded.</returns>
-        private bool TryCompress(string sourcePath, FileInfo destination, [NotNullWhen(false)] out Exception? error)
+        private bool TryCompressDir(string sourcePath, FileInfo destination, [NotNullWhen(false)] out Exception? error)
         {
             try
             {
-                if (Constants.TargetPlatform == GamePlatform.Mac)
-                    this.CompressUsingMacProcess(sourcePath, destination); // due to limitations with the bundled Mono on macOS, we can't reference System.IO.Compression
-                else
-                    this.CompressUsingNetFramework(sourcePath, destination);
+                ZipFile.CreateFromDirectory(sourcePath, destination.FullName, CompressionLevel.Fastest, false);
 
                 error = null;
                 return true;
@@ -158,48 +153,6 @@ namespace StardewModdingAPI.Mods.SaveBackup
                 error = ex;
                 return false;
             }
-        }
-
-        /// <summary>Create a zip using the .NET compression library.</summary>
-        /// <param name="sourcePath">The file or directory path to zip.</param>
-        /// <param name="destination">The destination file to create.</param>
-        /// <exception cref="NotSupportedException">The compression libraries aren't available on this system.</exception>
-        private void CompressUsingNetFramework(string sourcePath, FileInfo destination)
-        {
-            // get compress method
-            MethodInfo createFromDirectory;
-            try
-            {
-                // create compressed backup
-                Assembly coreAssembly = Assembly.Load("System.IO.Compression, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
-                Assembly fsAssembly = Assembly.Load("System.IO.Compression.FileSystem, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089");
-                Type compressionLevelType = coreAssembly.GetType("System.IO.Compression.CompressionLevel") ?? throw new InvalidOperationException("Can't load CompressionLevel type.");
-                Type zipFileType = fsAssembly.GetType("System.IO.Compression.ZipFile") ?? throw new InvalidOperationException("Can't load ZipFile type.");
-                createFromDirectory = zipFileType.GetMethod("CreateFromDirectory", new[] { typeof(string), typeof(string), compressionLevelType, typeof(bool) }) ?? throw new InvalidOperationException("Can't load ZipFile.CreateFromDirectory method.");
-            }
-            catch (Exception ex)
-            {
-                throw new NotSupportedException("Couldn't load the .NET compression libraries on this system.", ex);
-            }
-
-            // compress file
-            createFromDirectory.Invoke(null, new object[] { sourcePath, destination.FullName, CompressionLevel.Fastest, false });
-        }
-
-        /// <summary>Create a zip using a process command on macOS.</summary>
-        /// <param name="sourcePath">The file or directory path to zip.</param>
-        /// <param name="destination">The destination file to create.</param>
-        private void CompressUsingMacProcess(string sourcePath, FileInfo destination)
-        {
-            DirectoryInfo saveFolder = new(sourcePath);
-            ProcessStartInfo startInfo = new()
-            {
-                FileName = "zip",
-                Arguments = $"-rq \"{destination.FullName}\" \"{saveFolder.Name}\" -x \"*.DS_Store\" -x \"__MACOSX\"",
-                WorkingDirectory = $"{saveFolder.FullName}/../",
-                CreateNoWindow = true
-            };
-            new Process { StartInfo = startInfo }.Start();
         }
 
         /// <summary>Recursively copy a directory or file.</summary>

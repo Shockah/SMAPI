@@ -258,7 +258,11 @@ namespace StardewModdingAPI.Framework
                     monitor: this.Monitor,
                     reflection: this.Reflection,
                     eventManager: this.EventManager,
-                    modHooks: new SModHooks(this.OnNewDayAfterFade, this.Monitor),
+                    modHooks: new SModHooks(
+                        parent: new ModHooks(),
+                        beforeNewDayAfterFade: this.OnNewDayAfterFade,
+                        monitor: this.Monitor
+                    ),
                     multiplayer: this.Multiplayer,
                     exitGameImmediately: this.ExitGameImmediately,
 
@@ -1795,7 +1799,7 @@ namespace StardewModdingAPI.Framework
                     // call entry method
                     try
                     {
-                        mod.Entry(mod.Helper!);
+                        mod.Entry(mod.Helper);
                     }
                     catch (Exception ex)
                     {
@@ -1822,7 +1826,7 @@ namespace StardewModdingAPI.Framework
                     }
 
                     // validate mod doesn't implement both GetApi() and GetApi(mod)
-                    if (metadata.Api != null && mod.GetType().GetMethod(nameof(Mod.GetApi), new Type[] { typeof(IModInfo) })!.DeclaringType != typeof(Mod))
+                    if (metadata.Api != null && mod.GetType().GetMethod(nameof(Mod.GetApi), new[] { typeof(IModInfo) })!.DeclaringType != typeof(Mod))
                         metadata.LogAsMod($"Mod implements both {nameof(Mod.GetApi)}() and {nameof(Mod.GetApi)}({nameof(IModInfo)}), which isn't allowed. The latter will be ignored.", LogLevel.Error);
                 }
                 Context.HeuristicModsRunningCode.TryPop(out _);

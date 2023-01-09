@@ -215,13 +215,24 @@ namespace StardewModdingAPI.ModBuildConfig.Framework
                     return true;
             }
 
-            // check for bundled assembly types
-            // When bundleAssemblyTypes is set, *all* dependencies are copied into the build output but only those which match the given assembly types should be bundled.
-            if (bundleAssemblyTypes != ExtraAssemblyTypes.None)
+            // ignore by assembly type
+            ExtraAssemblyTypes type = this.GetExtraAssemblyType(file, modDllName);
+            switch (bundleAssemblyTypes)
             {
-                var type = this.GetExtraAssemblyType(file, modDllName);
-                if (type != ExtraAssemblyTypes.None && !bundleAssemblyTypes.HasFlag(type))
-                    return true;
+                // Only explicitly-referenced assemblies are in the build output. These should be added to the zip,
+                // since it's possible the game won't load them (except game assemblies which will always be loaded
+                // separately). If they're already loaded, SMAPI will just ignore them.
+                case ExtraAssemblyTypes.None:
+                    if (type is ExtraAssemblyTypes.Game)
+                        return true;
+                    break;
+
+                // All assemblies are in the build output (due to how .NET builds references), but only those which
+                // match the bundled type should be in the zip.
+                default:
+                    if (type != ExtraAssemblyTypes.None && !bundleAssemblyTypes.HasFlag(type))
+                        return true;
+                    break;
             }
 
             return false;
