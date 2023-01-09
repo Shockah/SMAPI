@@ -7,12 +7,15 @@
   _If needed, you can update to SMAPI 3.16.0 first and then install the latest version._
 -->
 
-## Upcoming release
+## 3.18.2
+Released 09 January 2023 for Stardew Valley 1.5.6 or later.
+
 * For players:
-  * Fixed save backups being empty in rare cases on macOS.
+  * Fixed empty save backups for some macOS players.
+  * Fixed `player_add` console command not handling custom slingshots correctly (thanks too DaLion!).
 
 * For mod authors:
-  * Added `DelegatingModHooks` utility for rare cases where a mod needs to override SMAPI's mod hooks in the game directly.
+  * Added `DelegatingModHooks` utility for mods which need to override SMAPI's mod hooks directly.
   * Updated to Newtonsoft.Json 13.0.2 (see [changes](https://github.com/JamesNK/Newtonsoft.Json/releases/tag/13.0.2)) and Pintail 2.2.1 (see [changes](https://github.com/Nanoray-pl/Pintail/blob/master/docs/release-notes.md#222)).
 
 ## 3.18.1
