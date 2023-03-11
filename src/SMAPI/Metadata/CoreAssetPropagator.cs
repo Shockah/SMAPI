@@ -167,9 +167,18 @@ namespace StardewModdingAPI.Metadata
                 {
                     if (contentManager.IsLoaded(assetName))
                     {
-                        changed = true;
-                        Texture2D texture = contentManager.LoadLocalized<Texture2D>(assetName, language, useCache: true);
-                        texture.CopyFromTexture(newTexture.Value);
+                        if (this.DisposableContentManager.DoesAssetExist<Texture2D>(assetName))
+                        {
+                            changed = true;
+
+                            Texture2D texture = contentManager.LoadLocalized<Texture2D>(assetName, language, useCache: true);
+                            texture.CopyFromTexture(newTexture.Value);
+                        }
+                        else
+                        {
+                            this.Monitor.Log($"Skipped reload for '{assetName.Name}' because the underlying asset no longer exists.", LogLevel.Warn);
+                            break;
+                        }
                     }
                 }
 
