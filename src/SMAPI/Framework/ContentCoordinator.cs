@@ -575,14 +575,19 @@ namespace StardewModdingAPI.Framework
         {
             try
             {
-                asset = this.VanillaContentManager.Load<T>(assetName);
-                return true;
+                if (this.VanillaContentManager.DoesAssetExist<T>(assetName))
+                {
+                    asset = this.VanillaContentManager.Load<T>(assetName);
+                    return true;
+                }
             }
             catch
             {
-                asset = default;
-                return false;
+                // handled below
             }
+
+            asset = default;
+            return false;
         }
 
         /// <summary>Get the language enums (like <see cref="LocalizedContentManager.LanguageCode.ja"/>) indexed by locale code (like <c>ja-JP</c>).</summary>
