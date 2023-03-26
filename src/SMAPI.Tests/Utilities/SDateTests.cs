@@ -60,12 +60,17 @@ namespace SMAPI.Tests.Utilities
         [Test(Description = "Assert that the constructor sets the expected values for all valid dates.")]
         public void Constructor_SetsExpectedValues([ValueSource(nameof(SDateTests.SampleSeasonValues))] string season, [ValueSource(nameof(SDateTests.ValidDays))] int day, [Values(1, 2, 100)] int year)
         {
+            // arrange
+            Season expectedSeason = Enum.Parse<Season>(season, ignoreCase: true);
+
             // act
             SDate date = new(day, season, year);
 
             // assert
             Assert.AreEqual(day, date.Day);
-            Assert.AreEqual(season.Trim().ToLowerInvariant(), date.Season);
+            Assert.AreEqual(expectedSeason, date.Season);
+            Assert.AreEqual((int)expectedSeason, date.SeasonIndex);
+            Assert.AreEqual(Utility.getSeasonKey(expectedSeason), date.SeasonKey);
             Assert.AreEqual(year, date.Year);
         }
 

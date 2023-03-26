@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Newtonsoft.Json;
 using StardewModdingAPI.Framework;
 using StardewValley;
@@ -32,8 +31,11 @@ namespace StardewModdingAPI.Utilities
         /// <summary>The day of month.</summary>
         public int Day { get; }
 
+        /// <summary>The season.</summary>
+        public Season Season { get; }
+
         /// <summary>The season name.</summary>
-        public string Season { get; }
+        public string SeasonKey { get; }
 
         /// <summary>The index of the season (where 0 is spring, 1 is summer, 2 is fall, and 3 is winter).</summary>
         /// <remarks>This is used in some game calculations (e.g. seasonal game sprites) and methods (e.g. <see cref="Utility.getSeasonNameFromNumber"/>).</remarks>
@@ -65,10 +67,26 @@ namespace StardewModdingAPI.Utilities
         /// <summary>Construct an instance.</summary>
         /// <param name="day">The day of month.</param>
         /// <param name="season">The season name.</param>
+        /// <exception cref="ArgumentException">One of the arguments has an invalid value (like day 35).</exception>
+        public SDate(int day, Season season)
+            : this(day, season, Game1.year) { }
+
+        /// <summary>Construct an instance.</summary>
+        /// <param name="day">The day of month.</param>
+        /// <param name="season">The season name.</param>
         /// <param name="year">The year.</param>
         /// <exception cref="ArgumentException">One of the arguments has an invalid value (like day 35).</exception>
         [JsonConstructor]
         public SDate(int day, string season, int year)
+            : this(day, season, year, allowDayZero: false) { }
+
+        /// <summary>Construct an instance.</summary>
+        /// <param name="day">The day of month.</param>
+        /// <param name="season">The season name.</param>
+        /// <param name="year">The year.</param>
+        /// <exception cref="ArgumentException">One of the arguments has an invalid value (like day 35).</exception>
+        [JsonConstructor]
+        public SDate(int day, Season season, int year)
             : this(day, season, year, allowDayZero: false) { }
 
         /// <summary>Get the current in-game date.</summary>
@@ -140,7 +158,7 @@ namespace StardewModdingAPI.Utilities
         /// <summary>Get an untranslated string representation of the date. This is mainly intended for debugging or console messages.</summary>
         public override string ToString()
         {
-            return $"{this.Day:00} {this.Season} Y{this.Year}";
+            return $"{this.Day:00} {this.SeasonKey} Y{this.Year}";
         }
 
         /// <summary>Get a translated string representation of the date in the current game locale.</summary>
@@ -246,20 +264,16 @@ namespace StardewModdingAPI.Utilities
         *********/
         /// <summary>Construct an instance.</summary>
         /// <param name="day">The day of month.</param>
-        /// <param name="season">The season name.</param>
+        /// <param name="season">The season.</param>
         /// <param name="year">The year.</param>
         /// <param name="allowDayZero">Whether to allow 0 spring Y1 as a valid date.</param>
         /// <exception cref="ArgumentException">One of the arguments has an invalid value (like day 35).</exception>
         [SuppressMessage("ReSharper", "ConditionalAccessQualifierIsNonNullableAccordingToAPIContract", Justification = "The nullability is validated in this constructor.")]
-        private SDate(int day, string season, int year, bool allowDayZero)
+        private SDate(int day, Season season, int year, bool allowDayZero)
         {
-            season = season?.Trim().ToLowerInvariant()!; // null-checked below
-
             // validate
-            if (season == null)
-                throw new ArgumentNullException(nameof(season));
-            if (!this.Seasons.Contains(season))
-                throw new ArgumentException($"Unknown season '{season}', must be one of [{string.Join(", ", this.Seasons)}].");
+            if (!Enum.IsDefined(typeof(Season), season))
+                throw new ArgumentException($"Unknown season '{season}', must be one of [{string.Join(", ", Enum.GetNames(typeof(Season)))}].");
             if (day < 0 || day > this.DaysInSeason)
                 throw new ArgumentException($"Invalid day '{day}', must be a value from 1 to {this.DaysInSeason}.");
             if (day == 0 && !(allowDayZero && this.IsDayZero(day, season, year)))
@@ -270,19 +284,38 @@ namespace StardewModdingAPI.Utilities
             // initialize
             this.Day = day;
             this.Season = season;
-            this.SeasonIndex = this.GetSeasonIndex(season);
+            this.SeasonKey = Utility.getSeasonKey(season);
+            this.SeasonIndex = (int)season;
             this.Year = year;
             this.DayOfWeek = this.GetDayOfWeek(day);
             this.DaysSinceStart = this.GetDaysSinceStart(day, season, year);
         }
 
+        /// <summary>Construct an instance.</summary>
+        /// <param name="day">The day of month.</param>
+        /// <param name="season">The season name.</param>
+        /// <param name="year">The year.</param>
+        /// <param name="allowDayZero">Whether to allow 0 spring Y1 as a valid date.</param>
+        /// <exception cref="ArgumentException">One of the arguments has an invalid value (like day 35).</exception>
+        [SuppressMessage("ReSharper", "ConditionalAccessQualifierIsNonNullableAccordingToAPIContract", Justification = "The nullability is validated in this constructor.")]
+        private SDate(int day, string season, int year, bool allowDayZero)
+            : this(
+                  day,
+                  Utility.TryParseEnum(season, out Season parsedSeason)
+                     ? parsedSeason
+                     : throw new ArgumentException($"Unknown season '{season}', must be one of [{string.Join(", ", Enum.GetNames(typeof(Season)))}]."),
+                  year,
+                  allowDayZero
+            )
+        { }
+
         /// <summary>Get whether a date represents 0 spring Y1, which is the date during the in-game intro.</summary>
         /// <param name="day">The day of month.</param>
         /// <param name="season">The normalized season name.</param>
         /// <param name="year">The year.</param>
-        private bool IsDayZero(int day, string season, int year)
+        private bool IsDayZero(int day, Season season, int year)
         {
-            return day == 0 && season == "spring" && year == 1;
+            return day == 0 && season == Season.Spring && year == 1;
         }
 
         /// <summary>Get the day of week for a given date.</summary>
@@ -306,25 +339,14 @@ namespace StardewModdingAPI.Utilities
         /// <param name="day">The day of month.</param>
         /// <param name="season">The season name.</param>
         /// <param name="year">The year.</param>
-        private int GetDaysSinceStart(int day, string season, int year)
+        private int GetDaysSinceStart(int day, Season season, int year)
         {
             // return the number of days since 01 spring Y1 (inclusively)
             int yearIndex = year - 1;
             return
                 yearIndex * this.DaysInSeason * this.SeasonsInYear
-                + this.GetSeasonIndex(season) * this.DaysInSeason
+                + (int)season * this.DaysInSeason
                 + day;
-        }
-
-        /// <summary>Get a season index.</summary>
-        /// <param name="season">The season name.</param>
-        /// <exception cref="InvalidOperationException">The current season wasn't recognized.</exception>
-        private int GetSeasonIndex(string season)
-        {
-            int index = Array.IndexOf(this.Seasons, season);
-            if (index == -1)
-                throw new InvalidOperationException($"The season '{season}' wasn't recognized.");
-            return index;
         }
     }
 }
