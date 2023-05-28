@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 using StardewModdingAPI.Framework.Commands;
+using StardewValley;
 
 namespace StardewModdingAPI.Framework
 {
@@ -109,7 +109,7 @@ namespace StardewModdingAPI.Framework
             }
 
             // parse input
-            args = this.ParseArgs(input);
+            args = ArgUtility.SplitBySpaceQuoteAware(input);
             name = this.GetNormalizedName(args[0])!;
             args = args.Skip(1).ToArray();
 
@@ -138,56 +138,10 @@ namespace StardewModdingAPI.Framework
             return this.Commands.TryGetValue(name, out command);
         }
 
-        /// <summary>Trigger a command.</summary>
-        /// <param name="name">The command name.</param>
-        /// <param name="arguments">The command arguments.</param>
-        /// <returns>Returns whether a matching command was triggered.</returns>
-        public bool Trigger(string? name, string[] arguments)
-        {
-            // get normalized name
-            name = this.GetNormalizedName(name)!;
-            if (string.IsNullOrWhiteSpace(name))
-                return false;
-
-            // get command
-            if (this.Commands.TryGetValue(name, out Command? command))
-            {
-                command.Callback.Invoke(name, arguments);
-                return true;
-            }
-
-            return false;
-        }
-
 
         /*********
         ** Private methods
         *********/
-        /// <summary>Parse a string into command arguments.</summary>
-        /// <param name="input">The string to parse.</param>
-        private string[] ParseArgs(string input)
-        {
-            bool inQuotes = false;
-            IList<string> args = new List<string>();
-            StringBuilder currentArg = new();
-            foreach (char ch in input)
-            {
-                if (ch == '"')
-                    inQuotes = !inQuotes;
-                else if (!inQuotes && char.IsWhiteSpace(ch))
-                {
-                    args.Add(currentArg.ToString());
-                    currentArg.Clear();
-                }
-                else
-                    currentArg.Append(ch);
-            }
-
-            args.Add(currentArg.ToString());
-
-            return args.Where(item => !string.IsNullOrWhiteSpace(item)).ToArray();
-        }
-
         /// <summary>Try to parse a 'screen=X' command argument, which specifies the screen that should receive the command.</summary>
         /// <param name="arg">The raw argument to parse.</param>
         /// <param name="screen">The parsed screen ID, if any.</param>

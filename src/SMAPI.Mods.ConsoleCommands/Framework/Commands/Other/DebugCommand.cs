@@ -20,15 +20,13 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands.Other
         /// <param name="args">The command arguments.</param>
         public override void Handle(IMonitor monitor, string command, ArgumentParser args)
         {
-            // submit command
-            string debugCommand = string.Join(" ", args);
             string oldOutput = Game1.debugOutput;
-            Game1.game1.parseDebugInput(debugCommand);
-
-            // show result
-            monitor.Log(Game1.debugOutput != oldOutput
-                ? $"> {Game1.debugOutput}"
-                : "Sent debug command to the game, but there was no output.", LogLevel.Info);
+            if (DebugCommands.TryHandle(args.Values)) // if it returns false, the game will log an error itself
+            {
+                monitor.Log(Game1.debugOutput != oldOutput
+                    ? $"> {Game1.debugOutput}"
+                    : "Sent debug command to the game, but there was no output.", LogLevel.Info);
+            }
         }
     }
 }

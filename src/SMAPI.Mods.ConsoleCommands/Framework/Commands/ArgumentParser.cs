@@ -15,9 +15,6 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands
         /// <summary>The command name for errors.</summary>
         private readonly string CommandName;
 
-        /// <summary>The arguments to parse.</summary>
-        private readonly string[] Args;
-
         /// <summary>Writes messages to the console and log file.</summary>
         private readonly IMonitor Monitor;
 
@@ -25,12 +22,15 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands
         /*********
         ** Accessors
         *********/
+        /// <summary>The arguments to parse.</summary>
+        public string[] Values { get; }
+
         /// <summary>Get the number of arguments.</summary>
-        public int Count => this.Args.Length;
+        public int Count => this.Values.Length;
 
         /// <summary>Get the argument at the specified index in the list.</summary>
         /// <param name="index">The zero-based index of the element to get.</param>
-        public string this[int index] => this.Args[index];
+        public string this[int index] => this.Values[index];
 
 
         /*********
@@ -38,12 +38,12 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands
         *********/
         /// <summary>Construct an instance.</summary>
         /// <param name="commandName">The command name for errors.</param>
-        /// <param name="args">The arguments to parse.</param>
+        /// <param name="values">The arguments to parse.</param>
         /// <param name="monitor">Writes messages to the console and log file.</param>
-        public ArgumentParser(string commandName, string[] args, IMonitor monitor)
+        public ArgumentParser(string commandName, string[] values, IMonitor monitor)
         {
             this.CommandName = commandName;
-            this.Args = args;
+            this.Values = values;
             this.Monitor = monitor;
         }
 
@@ -58,20 +58,20 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands
             value = null;
 
             // validate
-            if (this.Args.Length < index + 1)
+            if (this.Values.Length < index + 1)
             {
                 if (required)
                     this.LogError($"Argument {index} ({name}) is required.");
                 return false;
             }
-            if (oneOf?.Any() == true && !oneOf.Contains(this.Args[index], StringComparer.OrdinalIgnoreCase))
+            if (oneOf?.Any() == true && !oneOf.Contains(this.Values[index], StringComparer.OrdinalIgnoreCase))
             {
                 this.LogError($"Argument {index} ({name}) must be one of {string.Join(", ", oneOf)}.");
                 return false;
             }
 
             // get value
-            value = this.Args[index];
+            value = this.Values[index];
             return true;
         }
 
@@ -111,7 +111,7 @@ namespace StardewModdingAPI.Mods.ConsoleCommands.Framework.Commands
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
         public IEnumerator<string> GetEnumerator()
         {
-            return ((IEnumerable<string>)this.Args).GetEnumerator();
+            return ((IEnumerable<string>)this.Values).GetEnumerator();
         }
 
         /// <summary>Returns an enumerator that iterates through a collection.</summary>
