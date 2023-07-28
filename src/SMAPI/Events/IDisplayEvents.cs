@@ -9,6 +9,12 @@ namespace StardewModdingAPI.Events
         /// <summary>Raised after a game menu is opened, closed, or replaced.</summary>
         event EventHandler<MenuChangedEventArgs> MenuChanged;
 
+        /// <summary>Raised before the game draws a specific step in the rendering cycle.</summary>
+        event EventHandler<RenderingStepEventArgs> RenderingStep;
+
+        /// <summary>Raised after the game draws a specific step in the rendering cycle.</summary>
+        event EventHandler<RenderedStepEventArgs> RenderedStep;
+
         /// <summary>Raised before the game draws anything to the screen in a draw tick, as soon as the sprite batch is opened. The sprite batch may be closed and reopened multiple times after this event is called, but it's only raised once per draw tick. This event isn't useful for drawing to the screen, since the game will draw over it.</summary>
         event EventHandler<RenderingEventArgs> Rendering;
 

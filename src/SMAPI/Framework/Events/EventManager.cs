@@ -36,6 +36,12 @@ namespace StardewModdingAPI.Framework.Events
         /// <inheritdoc cref="IDisplayEvents.Rendered" />
         public readonly ManagedEvent<RenderedEventArgs> Rendered;
 
+        /// <inheritdoc cref="IDisplayEvents.RenderingStep" />
+        public readonly ManagedEvent<RenderingStepEventArgs> RenderingStep;
+
+        /// <inheritdoc cref="IDisplayEvents.RenderedStep" />
+        public readonly ManagedEvent<RenderedStepEventArgs> RenderedStep;
+
         /// <inheritdoc cref="IDisplayEvents.RenderingWorld" />
         public readonly ManagedEvent<RenderingWorldEventArgs> RenderingWorld;
 
@@ -212,6 +218,8 @@ namespace StardewModdingAPI.Framework.Events
             this.MenuChanged = ManageEventOf<MenuChangedEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.MenuChanged));
             this.Rendering = ManageEventOf<RenderingEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.Rendering));
             this.Rendered = ManageEventOf<RenderedEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.Rendered));
+            this.RenderingStep = ManageEventOf<RenderingStepEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.RenderingStep));
+            this.RenderedStep = ManageEventOf<RenderedStepEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.RenderedStep));
             this.RenderingWorld = ManageEventOf<RenderingWorldEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.RenderingWorld));
             this.RenderedWorld = ManageEventOf<RenderedWorldEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.RenderedWorld));
             this.RenderingActiveMenu = ManageEventOf<RenderingActiveMenuEventArgs>(nameof(IModEvents.Display), nameof(IDisplayEvents.RenderingActiveMenu));

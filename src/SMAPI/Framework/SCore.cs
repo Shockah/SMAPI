@@ -1222,6 +1222,10 @@ namespace StardewModdingAPI.Framework
                     this.RaiseRenderEvent(events.RenderingHud, spriteBatch, renderTarget);
                     break;
             }
+
+            // raise generic rendering stage event
+            if (events.RenderingStep.HasListeners)
+                this.RaiseRenderEvent(events.RenderingStep, spriteBatch, renderTarget, RenderingStepEventArgs.Instance(step));
         }
 
         /// <summary>Raised when the game finishes a render step in the draw loop.</summary>
@@ -1246,6 +1250,10 @@ namespace StardewModdingAPI.Framework
                     this.RaiseRenderEvent(events.RenderedHud, spriteBatch, renderTarget);
                     break;
             }
+
+            // raise generic rendering stage event
+            if (events.RenderedStep.HasListeners)
+                this.RaiseRenderEvent(events.RenderedStep, spriteBatch, renderTarget, RenderedStepEventArgs.Instance(step));
         }
 
         /// <summary>Raised after an instance finishes a draw loop.</summary>
@@ -1262,6 +1270,18 @@ namespace StardewModdingAPI.Framework
         /// <param name="renderTarget">The render target being drawn to the screen.</param>
         private void RaiseRenderEvent<TEventArgs>(ManagedEvent<TEventArgs> @event, SpriteBatch spriteBatch, RenderTarget2D renderTarget)
             where TEventArgs : EventArgs, new()
+        {
+            this.RaiseRenderEvent(@event, spriteBatch, renderTarget, Singleton<TEventArgs>.Instance);
+        }
+
+        /// <summary>Raise a rendering/rendered event, temporarily opening the given sprite batch if needed to let mods draw to it.</summary>
+        /// <typeparam name="TEventArgs">The event args type to construct.</typeparam>
+        /// <param name="event">The event to raise.</param>
+        /// <param name="spriteBatch">The sprite batch being drawn to the screen.</param>
+        /// <param name="renderTarget">The render target being drawn to the screen.</param>
+        /// <param name="eventArgs">The event arguments to pass to the event.</param>
+        private void RaiseRenderEvent<TEventArgs>(ManagedEvent<TEventArgs> @event, SpriteBatch spriteBatch, RenderTarget2D renderTarget, TEventArgs eventArgs)
+            where TEventArgs : EventArgs
         {
             if (!@event.HasListeners)
                 return;
@@ -1287,7 +1307,7 @@ namespace StardewModdingAPI.Framework
                         Game1.SetRenderTarget(renderTarget);
                 }
 
-                @event.RaiseEmpty();
+                @event.Raise(eventArgs);
             }
             finally
             {

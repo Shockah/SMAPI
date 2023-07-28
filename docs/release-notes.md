@@ -11,6 +11,7 @@
 
 * For mod authors:
   * Updated to .NET 6.
+  * Added `RenderingStep` and `RenderedStep` events, which let you handle a specific step in the game's render cycle.
   * Removed all deprecated APIs.
   * SMAPI no longer intercepts output written to the console. Mods which directly access `Console` will be listed under mod warnings.
 

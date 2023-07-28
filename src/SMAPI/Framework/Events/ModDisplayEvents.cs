@@ -17,6 +17,20 @@ namespace StardewModdingAPI.Framework.Events
         }
 
         /// <inheritdoc />
+        public event EventHandler<RenderingStepEventArgs> RenderingStep
+        {
+            add => this.EventManager.RenderingStep.Add(value, this.Mod);
+            remove => this.EventManager.RenderingStep.Remove(value);
+        }
+
+        /// <inheritdoc />
+        public event EventHandler<RenderedStepEventArgs> RenderedStep
+        {
+            add => this.EventManager.RenderedStep.Add(value, this.Mod);
+            remove => this.EventManager.RenderedStep.Remove(value);
+        }
+
+        /// <inheritdoc />
         public event EventHandler<RenderingEventArgs> Rendering
         {
             add => this.EventManager.Rendering.Add(value, this.Mod);
