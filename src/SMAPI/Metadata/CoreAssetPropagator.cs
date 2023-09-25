@@ -382,10 +382,6 @@ namespace StardewModdingAPI.Metadata
                     Game1.NPCGiftTastes = content.Load<Dictionary<string, string>>(key);
                     return true;
 
-                case "data/objectcontexttags": // Game1.LoadContent
-                    Game1.objectContextTags = content.Load<Dictionary<string, string>>(key);
-                    return true;
-
                 case "data/objects": // Game1.LoadContent
                     Game1.objectData = content.Load<Dictionary<string, ObjectData>>(key);
                     ItemRegistry.ResetCache();
