@@ -43,7 +43,8 @@ namespace StardewModdingAPI.Toolkit.Serialization.Models
         public IManifestDependency[] Dependencies { get; }
 
         /// <inheritdoc />
-        public string[] PrivateAssemblies { get; private set; }
+        [JsonConverter(typeof(ManifestPrivateAssemblyArrayConverter))]
+        public IManifestPrivateAssembly[] PrivateAssemblies { get; }
 
         /// <inheritdoc />
         public string[] UpdateKeys { get; private set; }
@@ -99,7 +100,7 @@ namespace StardewModdingAPI.Toolkit.Serialization.Models
         /// <param name="privateAssemblies">The names of assemblies that should be private to this mod. These assemblies will not be directly accessible by other mods and will be ignored when a mod tries to use an assembly with the same name in a public manner.</param>
         /// <param name="updateKeys">The namespaced mod IDs to query for updates (like <c>Nexus:541</c>).</param>
         [JsonConstructor]
-        public Manifest(string uniqueId, string name, string author, string description, ISemanticVersion version, ISemanticVersion? minimumApiVersion, ISemanticVersion? minimumGameVersion, string? entryDll, IManifestContentPackFor? contentPackFor, IManifestDependency[]? dependencies, string[]? privateAssemblies, string[]? updateKeys)
+        public Manifest(string uniqueId, string name, string author, string description, ISemanticVersion version, ISemanticVersion? minimumApiVersion, ISemanticVersion? minimumGameVersion, string? entryDll, IManifestContentPackFor? contentPackFor, IManifestDependency[]? dependencies, IManifestPrivateAssembly[]? privateAssemblies, string[]? updateKeys)
         {
             this.UniqueID = this.NormalizeField(uniqueId);
             this.Name = this.NormalizeField(name, replaceSquareBrackets: true);
@@ -111,7 +112,7 @@ namespace StardewModdingAPI.Toolkit.Serialization.Models
             this.EntryDll = this.NormalizeField(entryDll);
             this.ContentPackFor = contentPackFor;
             this.Dependencies = dependencies ?? Array.Empty<IManifestDependency>();
-            this.PrivateAssemblies = privateAssemblies ?? Array.Empty<string>();
+            this.PrivateAssemblies = privateAssemblies ?? Array.Empty<IManifestPrivateAssembly>();
             this.UpdateKeys = updateKeys ?? Array.Empty<string>();
         }
 
@@ -167,6 +168,16 @@ namespace StardewModdingAPI.Toolkit.Serialization.Models
             }
 
             return input;
+        }
+
+        /// <summary>Normalize whitespace in a raw string.</summary>
+        /// <param name="input">The input to strip.</param>
+#if NET6_0_OR_GREATER
+        [return: NotNullIfNotNull("input")]
+#endif
+        internal static string? NormalizeWhitespace(string? input)
+        {
+            return input?.Trim();
         }
     }
 }

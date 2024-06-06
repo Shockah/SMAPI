@@ -28,10 +28,7 @@ namespace StardewModdingAPI.Framework.ModLoading
             : base(mod.Manifest.UniqueID)
         {
             this.ModAssemblyLoadContexts = modAssemblyLoadContexts;
-            this.PrivateAssemblyNames = new HashSet<string>(
-                from assemblyName in mod.Manifest.PrivateAssemblies
-                select assemblyName.EndsWith("!") ? assemblyName[..^1] : assemblyName // a private assembly can be marked with a trailing "!" to treat it as used even if no usage was detected (e.g. access via reflection)
-            );
+            this.PrivateAssemblyNames = new HashSet<string>(mod.Manifest.PrivateAssemblies.Select(p => p.Name));
         }
 
 

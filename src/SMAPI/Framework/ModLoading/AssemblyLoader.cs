@@ -128,21 +128,12 @@ namespace StardewModdingAPI.Framework.ModLoading
             }
 
             // validate private assembly names
-            foreach (string rawName in mod.Manifest.PrivateAssemblies)
+            foreach (IManifestPrivateAssembly entry in mod.Manifest.PrivateAssemblies)
             {
-                string assemblyName = rawName;
+                string assemblyName = entry.Name;
 
-                bool isUsed;
-                if (assemblyName.EndsWith("!")) // a mod author can mark a private assembly with a trailing "!" - this will treat the assembly as used no matter what. useful for types loaded via reflection
-                {
-                    isUsed = true;
-                    assemblyName = assemblyName[..^1];
-                }
-                else
-                    isUsed = assemblies.Any(a => a.Definition?.Name.Name == assemblyName);
-
-                if (!isUsed)
-                    this.Monitor.Log($"      Mod {mod.DisplayName} specifies a private assembly {assemblyName}, but it does not use it.", LogLevel.Warn);
+                if (!entry.UsedDynamically && assemblies.All(a => a.Definition?.Name.Name != assemblyName))
+                    this.Monitor.Log($"      Mod '{mod.DisplayName}' refers to private assembly '{assemblyName}' in its manifest, but doesn't use it. This is a bug that should be reported to that mod's author.", LogLevel.Warn);
             }
 
             // validate load
