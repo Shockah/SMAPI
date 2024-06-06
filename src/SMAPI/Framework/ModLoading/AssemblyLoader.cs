@@ -13,7 +13,6 @@ using StardewModdingAPI.Framework.ModLoading.Symbols;
 using StardewModdingAPI.Metadata;
 using StardewModdingAPI.Toolkit.Framework.ModData;
 using StardewModdingAPI.Toolkit.Utilities;
-using StardewValley;
 
 namespace StardewModdingAPI.Framework.ModLoading
 {
@@ -108,7 +107,7 @@ namespace StardewModdingAPI.Framework.ModLoading
         /// <param name="mod">The mod for which the assembly is being loaded.</param>
         /// <param name="assemblyFile">The assembly file.</param>
         /// <param name="assumeCompatible">Assume the mod is compatible, even if incompatible code is detected.</param>
-        /// <param name="assemblyLoadContext">The <see cref="AssemblyLoadContext"/> for the currently being loaded mod.</param>
+        /// <param name="assemblyLoadContext">The assembly load context for the mod currently being loaded.</param>
         /// <returns>Returns the rewrite metadata for the preprocessed assembly.</returns>
         /// <exception cref="IncompatibleInstructionException">An incompatible CIL instruction was found while rewriting the assembly.</exception>
         public Assembly Load(IModMetadata mod, FileInfo assemblyFile, bool assumeCompatible, ModAssemblyLoadContext assemblyLoadContext)
@@ -116,36 +115,34 @@ namespace StardewModdingAPI.Framework.ModLoading
             // get referenced local assemblies
             AssemblyParseResult[] assemblies;
             {
-                HashSet<string> visitedAssemblyNames = new HashSet<string>( // don't try loading assemblies that are already loaded
+                HashSet<string> visitedAssemblyNames = new( // don't try loading assemblies that are already loaded
                     from assembly in AppDomain.CurrentDomain.GetAssemblies()
                     let name = assembly.GetName().Name
-                    where name != null
-                    where !assemblyLoadContext.PrivateAssemblyNames.Contains(name)
-                    let visitedAssemblyLoadContext = AssemblyLoadContext.GetLoadContext(assembly) as ModAssemblyLoadContext
-                    where visitedAssemblyLoadContext != null
-                    where !visitedAssemblyLoadContext.PrivateAssemblyNames.Contains(name)
+                    where
+                        name != null
+                        && !assemblyLoadContext.PrivateAssemblyNames.Contains(name)
+                        && (AssemblyLoadContext.GetLoadContext(assembly) as ModAssemblyLoadContext)?.PrivateAssemblyNames.Contains(name) is not true
                     select name
                 );
                 assemblies = this.GetReferencedLocalAssemblies(assemblyFile, visitedAssemblyNames, this.AssemblyDefinitionResolver).ToArray();
             }
 
             // validate private assembly names
-            for (int i = 0; i < mod.Manifest.PrivateAssemblies.Length; i++)
+            foreach (string rawName in mod.Manifest.PrivateAssemblies)
             {
-                bool isPrivateAssemblyUsed = false;
-                string privateAssemblyName = mod.Manifest.PrivateAssemblies[i];
+                string assemblyName = rawName;
 
-                // a mod author can mark a private assembly with a trailing "!" - this will treat the assembly as used no matter what. useful for types loaded via reflection
-                if (privateAssemblyName.EndsWith("!"))
+                bool isUsed;
+                if (assemblyName.EndsWith("!")) // a mod author can mark a private assembly with a trailing "!" - this will treat the assembly as used no matter what. useful for types loaded via reflection
                 {
-                    isPrivateAssemblyUsed = true;
-                    privateAssemblyName = privateAssemblyName[..^1];
+                    isUsed = true;
+                    assemblyName = assemblyName[..^1];
                 }
+                else
+                    isUsed = assemblies.Any(a => a.Definition?.Name.Name == assemblyName);
 
-                if (!isPrivateAssemblyUsed && assemblies.Any(a => a.Definition?.Name.Name == privateAssemblyName))
-                    isPrivateAssemblyUsed = true;
-                if (!isPrivateAssemblyUsed)
-                    this.Monitor.Log($"      Mod {mod.DisplayName} specifies a private assembly {privateAssemblyName}, but it does not use it.", LogLevel.Warn);
+                if (!isUsed)
+                    this.Monitor.Log($"      Mod {mod.DisplayName} specifies a private assembly {assemblyName}, but it does not use it.", LogLevel.Warn);
             }
 
             // validate load
@@ -189,7 +186,7 @@ namespace StardewModdingAPI.Framework.ModLoading
                 if (changed)
                 {
                     if (!oneAssembly)
-                        this.Monitor.Log($"      Loading{(loadAsPrivate ? " (private)" : "")} {assembly.File.Name} (rewritten)...");
+                        this.Monitor.Log($"      Loading{(loadAsPrivate ? " private" : "")} assembly '{assembly.File.Name}' (rewritten)...");
 
                     // load assembly
                     using MemoryStream outAssemblyStream = new();
@@ -202,7 +199,7 @@ namespace StardewModdingAPI.Framework.ModLoading
                 else
                 {
                     if (!oneAssembly)
-                        this.Monitor.Log($"      Loading{(loadAsPrivate ? " (private)" : "")} {assembly.File.Name}...");
+                        this.Monitor.Log($"      Loading{(loadAsPrivate ? " private" : "")} assembly '{assembly.File.Name}'...");
                     lastAssembly = assemblyLoadContext.LoadFromAssemblyPath(assembly.File.FullName);
                 }
 
